@@ -1,0 +1,50 @@
+// window.api(preload)가 없으면(브라우저로 열었을 때) 화면 확인용 빈 구현을 쓴다.
+const noop = async () => undefined
+const unsub = () => () => {}
+
+const stub = {
+  isElectron: false,
+  appInfo: async () => ({ version: '1.0.0', platform: 'browser', electron: '-', chrome: '-', logs: '-' }),
+  closeNow: noop,
+  pickMedia: async () => [],
+  message: async () => 0,
+  openProject: async () => ({ canceled: true }),
+  chooseNewDir: async () => null,
+  saveProject: async ({ dir, project }) => ({ dir, layers: project.layers }),
+  cancelSave: noop,
+  revealFolder: noop,
+  getRecent: async () => [],
+  getSettings: async () => ({ autoConnectChzzk: false, lastProject: null }),
+  setSettings: async (p) => p,
+  getPresets: async () => [],
+  savePresets: noop,
+  openOutput: noop,
+  closeOutput: noop,
+  outputIsOpen: async () => false,
+  outputConfig: noop,
+  outputInfo: async () => ({ width: 1920, height: 1080, scale: 1 }),
+  sendOutputState: () => {},
+  getOutputState: async () => null,
+  chzzk: {
+    status: async () => ({ state: 'disconnected', text: '연결 안 됨', hasKey: false, hasUserKey: false, clientId: '', loggedIn: false, autoConnect: false }),
+    saveKey: noop,
+    clearKey: noop,
+    login: noop,
+    cancelLogin: noop,
+    logout: noop,
+    connect: noop,
+    disconnect: noop,
+  },
+  openLogFolder: noop,
+  exportLog: noop,
+  log: () => {},
+  onBeforeClose: unsub,
+  onProgress: unsub,
+  onChzzkStatus: unsub,
+  onChatMessage: unsub,
+  onOutputState: unsub,
+  onOutputClosed: unsub,
+  onOutputOpened: unsub,
+}
+
+export const api = typeof window !== 'undefined' && window.api ? window.api : stub

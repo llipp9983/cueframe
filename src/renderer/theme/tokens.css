@@ -1,0 +1,71 @@
+@font-face { font-family: 'Pretendard'; font-weight: 400; font-display: swap; src: url('pretendard/dist/web/static/woff2/Pretendard-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Pretendard'; font-weight: 600; font-display: swap; src: url('pretendard/dist/web/static/woff2/Pretendard-SemiBold.woff2') format('woff2'); }
+@font-face { font-family: 'Pretendard'; font-weight: 700; font-display: swap; src: url('pretendard/dist/web/static/woff2/Pretendard-Bold.woff2') format('woff2'); }
+
+:root {
+  --bg0: #0b0d0e;
+  --bg1: #121416;
+  --bg2: #1a1d20;
+  --bg3: #23272b;
+  --hover: #2c3136;
+  --border: #343a40;
+  --input-border: #7a828a;
+  --track: #4a525a;
+  --text: #e8eaed;
+  --text-muted: #a3aab1;
+  --text-disabled: #6b737b;
+  --accent: #4fd1b1;
+  --accent-hover: #74dec4;
+  --accent-pressed: #3ab596;
+  --on-accent: #07130f;
+  --accent-soft: rgba(79, 209, 177, 0.15);
+  --ok: #8fd14f;
+  --warn: #f2b544;
+  --error: #f0646e;
+  --font: 'Pretendard', 'Malgun Gothic', 'Segoe UI', sans-serif;
+}
+
+@media (forced-colors: active) {
+  :root {
+    --bg0: Canvas;
+    --bg1: Canvas;
+    --bg2: Canvas;
+    --bg3: ButtonFace;
+    --hover: Highlight;
+    --border: CanvasText;
+    --input-border: CanvasText;
+    --track: GrayText;
+    --text: CanvasText;
+    --text-muted: CanvasText;
+    --text-disabled: GrayText;
+    --accent: Highlight;
+    --accent-hover: Highlight;
+    --accent-pressed: Highlight;
+    --on-accent: HighlightText;
+    --accent-soft: Highlight;
+    --ok: CanvasText;
+    --warn: CanvasText;
+    --error: CanvasText;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg1);
+  color: var(--text);
+  font: 13px/1.4 var(--font);
+  overflow: hidden;
+  user-select: none;
+}
+.muted {
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
