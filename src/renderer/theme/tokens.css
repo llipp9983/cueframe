@@ -69,3 +69,23 @@ body {
   color: var(--text-muted);
   font-size: 11.5px;
 }
+
+/* 레이어 효과 애니메이션 (transform만 써서 GPU로 처리) */
+@keyframes cf-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(var(--amp) * -1px));
+  }
+}
+@keyframes cf-sway {
+  0%,
+  100% {
+    transform: rotate(calc(var(--deg) * -1deg));
+  }
+  50% {
+    transform: rotate(calc(var(--deg) * 1deg));
+  }
+}

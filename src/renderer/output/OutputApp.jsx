@@ -2,23 +2,55 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 import { Stage, Fit } from '../scene/SceneView.jsx'
 
-const EMPTY = { layers: [], output: { width: 1920, height: 1080, fps: 30 }, projectDir: null, chat: [], diag: false, widgets: {} }
+const EMPTY = { layers: [], output: { width: 1920, height: 1080, fps: 30, transition: 'fade' }, projectDir: null, sceneKey: null, diag: false }
+const FADE_MS = 450
 
 export default function OutputApp() {
   const [state, setState] = useState(EMPTY)
+  const [chat, setChat] = useState([])
+  const [widgets, setWidgets] = useState({})
+  // 장면이 바뀌면 이전 장면을 잠깐 남겨 서서히 사라지게 한다
+  const [prev, setPrev] = useState(null)
+  const [fading, setFading] = useState(false)
+  const lastKey = useRef(null)
+  const lastLayers = useRef([])
   const [diag, setDiag] = useState({ t: 0, frames: 0, fps: 0, w: window.innerWidth, h: window.innerHeight })
   const counter = useRef({ frames: 0, start: performance.now(), last: performance.now(), lastFrames: 0 })
 
   useEffect(() => {
     document.title = '방송 출력 창'
     api.getOutputState().then((s) => s && setState(s))
-    return api.onOutputState(setState)
+    api.getOutputChat().then((c) => c && setChat(c))
+    const loadWidgets = () => api.widgets.all().then((w) => setWidgets(w ?? {}))
+    loadWidgets()
+    const offs = [api.onOutputState(setState), api.onOutputChat(setChat), api.onWidgetsChanged(loadWidgets)]
+    return () => offs.forEach((f) => f())
   }, [])
 
-  // 실제로 그린 프레임 수
+  // 장면이 바뀌었는지 보고 페이드를 시작한다
   useEffect(() => {
+    if (lastKey.current !== null && state.sceneKey !== lastKey.current && state.output.transition !== 'cut') {
+      setPrev({ layers: lastLayers.current, projectDir: state.projectDir })
+      setFading(false)
+      requestAnimationFrame(() => requestAnimationFrame(() => setFading(true)))
+      const t = setTimeout(() => setPrev(null), FADE_MS + 80)
+      lastKey.current = state.sceneKey
+      lastLayers.current = state.layers
+      return () => clearTimeout(t)
+    }
+    lastKey.current = state.sceneKey
+    lastLayers.current = state.layers
+  }, [state.sceneKey, state.layers, state.output.transition, state.projectDir])
+
+  // 실제로 그린 프레임 수는 진단 표시가 켜져 있을 때만 센다
+  useEffect(() => {
+    if (!state.diag) return
     let raf
     const c = counter.current
+    c.frames = 0
+    c.lastFrames = 0
+    c.start = performance.now()
+    c.last = c.start
     const loop = () => {
       c.frames++
       const now = performance.now()
@@ -31,7 +63,7 @@ export default function OutputApp() {
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [state.diag])
 
   useEffect(() => {
     const prevent = (e) => e.preventDefault()
@@ -46,7 +78,20 @@ export default function OutputApp() {
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000', overflow: 'hidden', cursor: 'default' }}>
       <Fit style={{ width: '100%', height: '100%' }}>
-        {({ scale }) => <Stage layers={state.layers} projectDir={state.projectDir} chat={state.chat} scale={scale} widgetLive widgetUrls={state.widgets} />}
+        {({ scale }) => (
+          <>
+            {prev && <Stage layers={prev.layers.filter((l) => l.kind !== 'Widget')} projectDir={prev.projectDir} chat={chat} scale={scale} style={{ opacity: fading ? 0 : 1, transition: `opacity ${FADE_MS}ms ease` }} />}
+            <Stage
+              layers={state.layers}
+              projectDir={state.projectDir}
+              chat={chat}
+              scale={scale}
+              widgetLive
+              widgetUrls={widgets}
+              style={prev ? { opacity: fading ? 1 : 0, transition: `opacity ${FADE_MS}ms ease` } : undefined}
+            />
+          </>
+        )}
       </Fit>
       {state.diag && (
         <pre style={{ position: 'absolute', right: 12, top: 8, margin: 0, color: '#8dff6b', font: '28px Consolas, monospace', textAlign: 'right', textShadow: '0 0 4px #000' }}>

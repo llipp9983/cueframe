@@ -101,7 +101,7 @@ describe('alpha analysis', () => {
 describe('project io', () => {
   it('round trips and normalizes', () => {
     const p = emptyProject('테스트')
-    p.layers = [createLayer('Prop', { mediaPath: 'media/a.png', rotation: -10, opacity: 5 })]
+    p.scenes[0].layers = [createLayer('Prop', { mediaPath: 'media/a.png', rotation: -10, opacity: 5 })]
     const { project } = parseProject(serializeProject(p))
     expect(project.name).toBe('테스트')
     expect(project.layers[0].rotation).toBe(350)
@@ -251,5 +251,102 @@ describe('snapPoint (resize)', () => {
   })
   it('does nothing beyond the threshold', () => {
     expect(snapPoint(500, 500, [], 5)).toMatchObject({ x: 500, y: 500, guides: [] })
+  })
+})
+
+import { formatCountdown, formatClock, textLines } from '../src/core/timer.js'
+import { normalizeFx, fxFilter, hasFx } from '../src/core/fx.js'
+import { defaultTextStyle, normalizeTextStyle } from '../src/core/textStyle.js'
+import { makeText, makeWidget } from '../src/core/scene.js'
+describe('timer / text', () => {
+  it('formats countdowns', () => {
+    expect(formatCountdown(0)).toBeNull()
+    expect(formatCountdown(-5)).toBeNull()
+    expect(formatCountdown(65_000)).toBe('01:05')
+    expect(formatCountdown(3_725_000)).toBe('01:02:05')
+    expect(formatCountdown(90_000_000)).toBe('1일 01:00:00')
+    expect(formatCountdown(3_725_000, 'ms')).toBe('62:05')
+    expect(formatCountdown(90_000_000, 'hms')).toBe('25:00:00')
+    expect(formatCountdown(1, 'auto')).toBe('00:01') // 올림
+  })
+  it('formats clock', () => {
+    const d = new Date(2026, 0, 1, 15, 4, 9)
+    expect(formatClock(d, 'HH:mm:ss')).toBe('15:04:09')
+    expect(formatClock(d, 'HH:mm')).toBe('15:04')
+    expect(formatClock(d, 'a h:mm')).toBe('오후 3:04')
+    expect(formatClock(new Date(2026, 0, 1, 0, 5, 0), 'a h:mm:ss')).toBe('오전 12:05:00')
+  })
+  it('builds lines for each mode', () => {
+    const t = { ...defaultTextStyle('text'), content: 'a\nb' }
+    expect(textLines(t)).toEqual(['a', 'b'])
+    const now = Date.parse('2026-01-01T00:00:00Z')
+    const c = { ...defaultTextStyle('countdown'), targetAt: new Date(now + 125_000).toISOString() }
+    expect(textLines(c, now)).toEqual(['방송 시작까지', '02:05'])
+    expect(textLines(c, now + 200_000)).toEqual(['방송이 곧 시작됩니다'])
+    expect(textLines({ ...c, targetAt: null }, now)).toEqual(['방송 시작까지', '--:--'])
+  })
+  it('normalizes text style', () => {
+    const s = normalizeTextStyle({ mode: 'weird', fontSize: 9999, color: 'nope', targetAt: 'garbage', align: 'x' })
+    expect(s.mode).toBe('text')
+    expect(s.fontSize).toBe(600)
+    expect(s.targetAt).toBeNull()
+    expect(s.align).toBe('center')
+  })
+  it('places text layers above props, below widgets', () => {
+    const prop = L('Prop'), w = makeWidget('x')
+    const s = insertLayer([prop, w], makeText('clock'))
+    expect(s.map((l) => l.kind)).toEqual(['Prop', 'Text', 'Widget'])
+  })
+})
+describe('effects', () => {
+  it('clamps and detects fx', () => {
+    const f = normalizeFx({ shadow: 5, float: -1, blur: 100, dim: 2 })
+    expect(f).toMatchObject({ shadow: 1, float: 0, blur: 40, dim: 0.9 })
+    expect(hasFx(normalizeFx({}))).toBe(false)
+    expect(hasFx(f)).toBe(true)
+    expect(fxFilter(normalizeFx({}))).toBeUndefined()
+    expect(fxFilter(f)).toContain('drop-shadow')
+  })
+  it('keeps fx and text through project round trip', () => {
+    const p = emptyProject('fx')
+    p.scenes[0].layers = [createLayer('Prop', { fx: normalizeFx({ float: 20 }) }), createLayer('Text', { text: defaultTextStyle('clock') })]
+    const { project } = parseProject(serializeProject(p))
+    expect(project.scenes[0].layers[0].fx.float).toBe(20)
+    expect(project.scenes[0].layers[1].text.mode).toBe('clock')
+  })
+})
+describe('scenes in project file', () => {
+  it('reads old single-scene files as one scene', () => {
+    const { project } = parseProject(JSON.stringify({ version: 1, name: 'old', layers: [{ kind: 'Prop' }] }))
+    expect(project.scenes).toHaveLength(1)
+    expect(project.scenes[0].name).toBe('장면 1')
+    expect(project.scenes[0].layers).toHaveLength(1)
+  })
+  it('writes first scene to legacy layers and round-trips scenes', () => {
+    const p = emptyProject('multi')
+    p.scenes = [
+      { id: 'a', name: '대기', layers: [createLayer('Prop', { name: 'one' })] },
+      { id: 'b', name: '곧 시작', layers: [createLayer('Text', { text: defaultTextStyle('countdown') })] },
+    ]
+    p.activeSceneId = 'b'
+    const raw = JSON.parse(serializeProject(p))
+    expect(raw.layers[0].name).toBe('one')
+    const { project } = parseProject(serializeProject(p))
+    expect(project.scenes.map((s) => s.name)).toEqual(['대기', '곧 시작'])
+    expect(project.activeSceneId).toBe('b')
+  })
+  it('limits scene count and repairs bad scene data', () => {
+    const many = { version: 1, scenes: Array.from({ length: 30 }, (_, i) => ({ id: 'x', name: ' ', layers: [] })), activeSceneId: 'nope' }
+    const { project, warnings } = parseProject(JSON.stringify(many))
+    expect(project.scenes).toHaveLength(20)
+    expect(new Set(project.scenes.map((s) => s.id)).size).toBe(20)
+    expect(project.scenes[0].name).toBe('장면 1')
+    expect(project.activeSceneId).toBe(project.scenes[0].id)
+    expect(warnings.length).toBeGreaterThan(0)
+  })
+  it('allows absolute media paths only when not from disk', () => {
+    const txt = JSON.stringify({ version: 1, layers: [{ kind: 'Prop', mediaPath: 'C:\\a.png' }] })
+    expect(parseProject(txt).project.layers[0].mediaPath).toBeNull()
+    expect(parseProject(txt, { fromDisk: false }).project.layers[0].mediaPath).toBe('C:\\a.png')
   })
 })

@@ -2,16 +2,17 @@ import { useState } from 'react'
 import { useStore } from '../store.js'
 import { reorderLayers } from '../../core/align.js'
 import Icon from '../theme/Icon.jsx'
-import { toggleVisible, toggleLock, moveSelected, duplicateSelected, deleteSelected } from './actions.js'
+import { toggleVisible, toggleLock, moveSelected, duplicateSelected, deleteSelected, startRename, finishRename } from './actions.js'
 import { canDuplicate } from '../../core/scene.js'
 
-const TAG = { Background: ' [배경]  ', Table: ' [테이블]  ', Chat: ' [채팅]  ', Widget: ' [위젯]  ' }
+const TAG = { Background: ' [배경]  ', Table: ' [테이블]  ', Text: ' [문구]  ', Chat: ' [채팅]  ', Widget: ' [위젯]  ' }
 
 export default function LayerList() {
   const layers = useStore((s) => s.layers)
   const selectedIds = useStore((s) => s.selectedIds)
   const missing = useStore((s) => s.missing)
   const select = useStore((s) => s.select)
+  const renameId = useStore((s) => s.renameId)
   const [drop, setDrop] = useState(null) // {id, place}
   const [dragIds, setDragIds] = useState(null)
   const hasSel = selectedIds.length > 0
@@ -49,6 +50,7 @@ export default function LayerList() {
           const sel = selectedIds.includes(l.id)
           return (
             <div key={l.id} role="option" aria-selected={sel} onClick={(e) => onRow(e, l)}
+              onDoubleClick={() => !l.locked && startRename(l.id)}
               draggable={!l.locked && l.kind !== 'Background'}
               onDragStart={(e) => {
                 const ids = selectedIds.includes(l.id) ? selectedIds : [l.id]
@@ -72,11 +74,32 @@ export default function LayerList() {
               <button className={`toggle${l.locked ? ' on' : ''}`} title="잠금" aria-label="잠금" aria-pressed={l.locked} onClick={(e) => (e.stopPropagation(), toggleLock(l.id))}>
                 <Icon name={l.locked ? 'lock' : 'unlock'} />
               </button>
-              <span style={{ whiteSpace: 'pre', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }}>
-                {missing[l.id] && <span style={{ color: 'var(--warn)' }}> ⚠ </span>}
-                <span className="muted">{TAG[l.kind] ?? ''}</span>
-                {l.name}
-              </span>
+              {renameId === l.id ? (
+                <input
+                  type="text"
+                  aria-label="레이어 이름"
+                  autoFocus
+                  defaultValue={l.name}
+                  maxLength={100}
+                  style={{ flex: 1, minWidth: 0, minHeight: 22, padding: '0 4px' }}
+                  onClick={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.target.select()}
+                  onBlur={(e) => finishRename(l.id, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                    if (e.key === 'Escape') {
+                      e.currentTarget.value = l.name
+                      e.currentTarget.blur()
+                    }
+                  }}
+                />
+              ) : (
+                <span title="이름 바꾸기: 더블클릭 또는 F2" style={{ whiteSpace: 'pre', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }}>
+                  {missing[l.id] && <span style={{ color: 'var(--warn)' }}> ⚠ </span>}
+                  <span className="muted">{TAG[l.kind] ?? ''}</span>
+                  {l.name}
+                </span>
+              )}
             </div>
           )
         })}

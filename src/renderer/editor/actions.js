@@ -1,10 +1,11 @@
 import { useStore } from '../store.js'
 import { api } from '../api.js'
 import { createLayer, isVideoPath, fileNameOf } from '../../core/layer.js'
+import { parseProject, serializeProject } from '../../core/project.js'
 import { normalizeChatStyle } from '../../core/chatStyle.js'
 import { BUILTIN_PRESETS } from '../../core/presets.js'
 import {
-  insertLayer, hasKind, makeBackground, makeTable, makeProp, makeChat, referenceTable, surfaceY, placeOnSurface,
+  insertLayer, hasKind, makeBackground, makeTable, makeProp, makeChat, makeText, makeWidget, referenceTable, surfaceY, placeOnSurface,
   duplicateLayers, moveLayers, removeLayers, canDuplicate,
 } from '../../core/scene.js'
 import { hitTest } from '../../core/geometry.js'
@@ -207,12 +208,14 @@ export async function confirmDiscard() {
   const r = await askSave(s.projectName)
   if (r === 'cancel') return false
   if (r === 'save') return saveProject()
+  clearAutosave() // 저장하지 않기로 했으니 복구용 자동 저장본도 필요 없다
   return true
 }
 
 export async function newProject() {
   if (!(await confirmDiscard())) return
   st().newProject()
+  clearAutosave()
 }
 
 export async function openProject(dir) {
@@ -223,6 +226,7 @@ export async function openProject(dir) {
   if (res.error === 'missing') return void (await inform('프로젝트 폴더를 찾을 수 없습니다.', { warn: true }))
   if (res.error) return void (await inform('프로젝트 파일이 손상되어 열 수 없습니다.', { warn: true }))
   st().loadProject(res)
+  clearAutosave()
   const notes = [...res.warnings]
   if (res.recovered) notes.push('프로젝트 파일이 손상되어 백업(.bak)에서 복구했습니다.')
   st().set({ notice: notes.join(' ') })
@@ -244,21 +248,23 @@ export async function saveProject(saveAs = false) {
   // 다른 폴더로 저장하면 기존 상대 경로 미디어를 절대 경로로 풀어 새 폴더로 복사한다.
   const from = s.projectDir
   const abs = (p) => (from && from !== dir ? resolveMedia(from, p) : p)
-  const layers = s.layers.map((l) => ({
-    ...l,
-    mediaPath: l.mediaPath ? abs(l.mediaPath) : null,
-    chat: l.chat ? { ...l.chat, images: l.chat.images.map((i) => ({ ...i, src: abs(i.src) })) } : null,
+  const scenes = s.allScenes().map((sc) => ({
+    ...sc,
+    layers: sc.layers.map((l) => ({
+      ...l,
+      mediaPath: l.mediaPath ? abs(l.mediaPath) : null,
+      chat: l.chat ? { ...l.chat, images: l.chat.images.map((i) => ({ ...i, src: abs(i.src) })) } : null,
+    })),
   }))
   st().set({ saving: { done: 0, total: 0 }, notice: '' })
   try {
-    const res = await api.saveProject({ dir, project: { name, output: s.output, layers }, recovered: s.recovered })
+    const res = await api.saveProject({ dir, project: { name, output: s.output, scenes, activeSceneId: s.activeSceneId }, recovered: s.recovered })
     if (res.cancelled) {
       st().set({ notice: '저장을 취소했습니다.' })
       return false
     }
-    // 저장 중 바뀐 것이 없다면 상대 경로로 바뀐 레이어를 반영한다.
-    const merged = st().layers.map((l) => res.layers.find((x) => x.id === l.id) ?? l)
-    st().markSaved({ layers: merged, dir, name })
+    st().markSaved({ scenes: res.scenes, dir, name })
+    clearAutosave()
     refreshRecent()
     return true
   } catch (e) {
@@ -271,6 +277,49 @@ export async function saveProject(saveAs = false) {
 
 export async function refreshRecent() {
   st().set({ recent: await api.getRecent() })
+}
+
+// ── 자동 저장과 복구
+let clearing = null
+export function clearAutosave() {
+  clearing = api.autosave.clear()
+  return clearing
+}
+
+/** 저장하지 않은 변경이 있으면 이 PC에 임시로 적어 둔다(프로그램이 갑자기 꺼져도 복구할 수 있게). */
+export async function writeAutosaveIfDirty() {
+  const s = st()
+  if (!s.dirty || s.saving) return
+  if (clearing) await clearing
+  await api.autosave.write({ savedAt: Date.now(), projectDir: s.projectDir, text: serializeProject(s.getProject()) })
+}
+
+/** 시작할 때: 남아 있는 자동 저장본이 있으면 복구할지 묻는다. 복구했으면 true. */
+export async function offerRecovery() {
+  const a = await api.autosave.read()
+  if (!a?.text) return false
+  let parsed
+  try {
+    parsed = parseProject(a.text, { fromDisk: false })
+  } catch {
+    await clearAutosave()
+    return false
+  }
+  const when = new Date(a.savedAt).toLocaleString('ko-KR')
+  const ok = await ask({
+    title: 'CUEFRAME',
+    warn: true,
+    message: `저장하지 않은 작업이 남아 있습니다.\n프로젝트: ${parsed.project.name}\n마지막 자동 저장: ${when}\n\n복구할까요?`,
+    buttons: [{ label: '복구', value: true, accent: true }, { label: '버리기', value: false }],
+    cancelValue: false,
+  })
+  if (!ok) {
+    await clearAutosave()
+    return false
+  }
+  st().loadProject({ project: parsed.project, dir: a.projectDir ?? null })
+  st().set({ dirty: true, notice: '자동 저장본을 복구했습니다. 저장해 주세요.' })
+  return true
 }
 
 // ── 도움말
@@ -301,3 +350,50 @@ export async function deleteUserPreset(name) {
 }
 
 export { createLayer }
+
+// ── 문구·타이머, 치지직 위젯
+export function addText(mode) {
+  const layer = makeText(mode)
+  if (mode === 'countdown') layer.text = { ...layer.text, targetAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() } // 처음엔 10분 뒤로
+  st().commit(insertLayer(st().layers, layer), { selection: [layer.id] })
+}
+
+export async function addWidget() {
+  const name = await promptName({ title: '치지직 위젯', label: '위젯 이름을 입력하세요. (예: 후원 알림)', initial: '후원 알림' })
+  if (!name) return
+  const layer = makeWidget(name)
+  st().commit(insertLayer(st().layers, layer), { selection: [layer.id] })
+}
+
+// ── 레이어 이름 바꾸기
+export function startRename(id) {
+  st().set({ renameId: id })
+}
+export function finishRename(id, name) {
+  const n = String(name ?? '').trim().slice(0, 100)
+  st().set({ renameId: null })
+  if (n) st().patchLayer(id, { name: n })
+}
+
+// ── 채팅 프리셋 내보내기·가져오기
+export async function exportPresets() {
+  const list = st().userPresets
+  if (!list.length) return void (await inform('내보낼 내 프리셋이 없습니다.\n먼저 "현재 설정 저장…"으로 프리셋을 만들어 주세요.'))
+  if (await api.exportPresets(list)) st().set({ notice: '' })
+}
+export async function importPresets() {
+  let incoming
+  try {
+    incoming = await api.importPresets()
+  } catch (e) {
+    return void (await inform(`프리셋을 가져오지 못했습니다.\n${String(e.message ?? e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`, { warn: true }))
+  }
+  if (incoming === null) return
+  if (!incoming.length) return void (await inform('가져올 프리셋이 없습니다.'))
+  const fresh = incoming.map((p) => ({ name: p.name, style: normalizeChatStyle(p.style) }))
+  const names = new Set(fresh.map((p) => p.name))
+  const merged = [...st().userPresets.filter((p) => !names.has(p.name)), ...fresh].slice(0, 200)
+  await api.savePresets(merged)
+  st().set({ userPresets: merged })
+  await inform(`프리셋 ${fresh.length}개를 가져왔습니다. 이름이 같은 것은 바뀌었습니다.`)
+}

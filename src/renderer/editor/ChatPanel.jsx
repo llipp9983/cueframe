@@ -3,8 +3,9 @@ import { useStore } from '../store.js'
 import { api } from '../api.js'
 import { BUILTIN_PRESETS, PRESET_GROUPS } from '../../core/presets.js'
 import { normalizeChatStyle, PATTERNS, PATTERN_LABEL, SHAPES, SHAPE_LABEL, MAX_IMAGE_ORNAMENTS, MAX_SHAPE_ORNAMENTS } from '../../core/chatStyle.js'
+import Collapse from './Collapse.jsx'
 import { Row, SliderRow, ColorRow, CheckRow, SelectRow, TextRow, Num } from './fields.jsx'
-import { saveUserPreset, deleteUserPreset } from './actions.js'
+import { saveUserPreset, deleteUserPreset, exportPresets, importPresets } from './actions.js'
 import { mediaUrl, loadImageInfo } from '../scene/media.js'
 import { fileNameOf } from '../../core/layer.js'
 
@@ -67,8 +68,12 @@ export default function ChatPanel({ layer }) {
         <button onClick={async () => { const n = await saveUserPreset(layer.id); if (n) setSel(`u:${n}`) }}>현재 설정 저장…</button>
         <button disabled={!isUser} onClick={async () => { await deleteUserPreset(sel.slice(2)); setSel('b:0') }}>삭제</button>
       </div>
+      <div className="row" style={{ marginTop: 6 }}>
+        <button onClick={importPresets} title="다른 PC에서 내보낸 프리셋 파일을 불러옵니다">가져오기…</button>
+        <button onClick={exportPresets} title="내 프리셋을 파일로 저장합니다">내보내기…</button>
+      </div>
 
-      <Section>창 틀</Section>
+      <Collapse id="chat-frame" title="창 틀" defaultOpen={true}>
       <TextRow label="제목" value={s.title} max={40} onChange={set('title')} />
       {sl('제목 크기', 'titleSize', 10, 80)}
       {co('제목 글자색', 'titleColor')}
@@ -78,7 +83,8 @@ export default function ChatPanel({ layer }) {
       {co('아래 글자색', 'footerColor')}
       {co('아래 띠 색', 'footerBg')}
 
-      <Section>채팅 영역</Section>
+      </Collapse>
+<Collapse id="chat-area" title="채팅 영역" defaultOpen={false}>
       {co('배경색 (위)', 'bgColor')}
       {co('배경색 (아래)', 'bgColor2')}
       {sl('배경 투명도', 'bgOpacity', 0, 1, 0.01)}
@@ -91,7 +97,8 @@ export default function ChatPanel({ layer }) {
       {ck('점선 바느질', 'stitch')}
       {s.stitch && co('바느질 색', 'stitchColor')}
 
-      <Section>메시지</Section>
+      </Collapse>
+<Collapse id="chat-msg" title="메시지" defaultOpen={true}>
       {sl('글자 크기', 'fontSize', 10, 80)}
       {co('글자색', 'textColor')}
       {sl('줄 간격', 'lineHeight', 1, 3, 0.05)}
@@ -111,7 +118,8 @@ export default function ChatPanel({ layer }) {
       {s.glow && co('빛번짐 색', 'glowColor')}
       {ck('프로필 동그라미', 'profileCircle')}
 
-      <Section>닉네임</Section>
+      </Collapse>
+<Collapse id="chat-nick" title="닉네임" defaultOpen={false}>
       {sl('닉네임 크기', 'nickSize', 10, 80)}
       {co('닉네임 색', 'nickColor')}
       {ck('닉네임 굵게', 'nickBold')}
@@ -121,12 +129,14 @@ export default function ChatPanel({ layer }) {
       {ck('방송인 메시지는 오른쪽', 'streamerRight')}
       {ck('방송인 왕관', 'crown')}
 
-      <Section>표시 방식</Section>
+      </Collapse>
+<Collapse id="chat-show" title="표시 방식" defaultOpen={false}>
       <SelectRow label="쌓는 방향" value={s.direction} options={[['bottom-up', '아래에서 위로'], ['top-down', '위에서 아래로']]} onChange={set('direction')} />
       {sl('최대 표시 개수', 'maxMessages', 1, 50, 1)}
       {sl('숨김 시간(초)', 'hideSeconds', 0, 600, 1, (v) => (v === 0 ? '안 숨김' : v))}
 
-      <Section>이미지 장식 (PNG·JPG)</Section>
+      </Collapse>
+<Collapse id="chat-img" title="이미지 장식 (PNG·JPG)" defaultOpen={false}>
       {s.images.map((im, i) => (
         <div key={i} className="card" style={{ padding: 8, marginBottom: 6 }}>
           <div className="row" style={{ justifyContent: 'space-between' }}>
@@ -145,7 +155,8 @@ export default function ChatPanel({ layer }) {
       ))}
       <button disabled={s.images.length >= MAX_IMAGE_ORNAMENTS} onClick={addImage}>이미지 추가… ({s.images.length}/{MAX_IMAGE_ORNAMENTS})</button>
 
-      <Section>도형 장식</Section>
+      </Collapse>
+<Collapse id="chat-shape" title="도형 장식" defaultOpen={false}>
       {s.shapes.map((x, i) => (
         <div key={i} className="card" style={{ padding: 8, marginBottom: 6 }}>
           <div className="row" style={{ justifyContent: 'space-between' }}>
@@ -168,6 +179,7 @@ export default function ChatPanel({ layer }) {
           추가 ({s.shapes.length}/{MAX_SHAPE_ORNAMENTS})
         </button>
       </div>
+      </Collapse>
     </div>
   )
 }

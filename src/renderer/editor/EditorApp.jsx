@@ -13,7 +13,8 @@ import { nextSampleMessage, resetSample } from '../../core/chat.js'
 import { mediaUrl, loadImageInfo, loadVideoInfo } from '../scene/media.js'
 import { isVideoPath } from '../../core/layer.js'
 import * as actions from './actions.js'
-import { newProject, openProject, saveProject, confirmDiscard, deleteSelected, nudgeSelected, duplicateSelected, flipSelected, alignSelected, selectAll, setOpacitySelected, refreshRecent, loadUserPresets } from './actions.js'
+import SceneBar from './SceneBar.jsx'
+import { newProject, openProject, saveProject, confirmDiscard, offerRecovery, writeAutosaveIfDirty, clearAutosave, startRename, deleteSelected, nudgeSelected, duplicateSelected, flipSelected, alignSelected, selectAll, setOpacitySelected, refreshRecent, loadUserPresets } from './actions.js'
 
 if (import.meta.env.DEV) window.__actions = actions // 개발 중 점검용
 const ALIGN_KEYS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'top', ArrowDown: 'bottom', KeyC: 'hcenter', KeyM: 'vmiddle' }
@@ -43,7 +44,9 @@ export default function EditorApp() {
     api.chzzk.status().then((c) => s.set({ chzzk: c }))
     api.update.state().then((u) => s.set({ update: u }))
     api.outputIsOpen().then((o) => s.set({ outputOpen: !!o }))
-    api.getSettings().then(async (st) => {
+    ;(async () => {
+      if (await offerRecovery()) return
+      const st = await api.getSettings()
       if (st.lastProject) {
         const res = await api.openProject(st.lastProject)
         if (res?.project) {
@@ -51,7 +54,7 @@ export default function EditorApp() {
           s.set({ notice: [...(res.warnings ?? []), res.recovered ? '프로젝트 파일이 손상되어 백업(.bak)에서 복구했습니다.' : ''].filter(Boolean).join(' ') })
         }
       }
-    })
+    })()
     const offs = [
       api.onOutputOpened(() => useStore.getState().set({ outputOpen: true })),
       api.onOutputClosed(() => useStore.getState().set({ outputOpen: false })),
@@ -60,7 +63,10 @@ export default function EditorApp() {
       api.onChatMessage((m) => useStore.getState().addChat(m)),
       api.onProgress((p) => useStore.getState().set({ saving: p })),
       api.onBeforeClose(async () => {
-        if (await confirmDiscard()) api.closeNow()
+        if (await confirmDiscard()) {
+          await clearAutosave()
+          api.closeNow()
+        }
       }),
     ]
     return () => offs.forEach((f) => f())
@@ -83,11 +89,11 @@ export default function EditorApp() {
   }, [sample])
 
   // 이미지 분석·읽기 실패 감지(프로젝트를 열었을 때나 저장 후 경로가 바뀌었을 때)
-  const layers = useStore((s) => s.layers)
+  const mediaKey = useStore((s) => s.layers.map((l) => l.id + '|' + l.mediaPath).join(','))
   const projectDir = useStore((s) => s.projectDir)
   const analysis = useStore((s) => s.analysis)
   useEffect(() => {
-    for (const l of layers) {
+    for (const l of useStore.getState().layers) {
       if (!l.mediaPath || l.kind === 'Background' || l.kind === 'Chat' || analysis[l.mediaPath]) continue
       const url = mediaUrl(projectDir, l.mediaPath)
       if (!url) continue
@@ -98,26 +104,49 @@ export default function EditorApp() {
         useStore.getState().setMissing(l.id, false)
       }).catch(() => useStore.getState().setMissing(l.id, true))
     }
-  }, [layers, projectDir, analysis])
+  }, [mediaKey, projectDir, analysis])
 
   // 출력 창으로 장면 보내기
   useEffect(() => {
     let raf = 0
+    let chatRaf = 0
+    const live = (s) => {
+      const id = s.liveFollow ? s.activeSceneId : s.liveSceneId
+      if (id === s.activeSceneId) return { id, layers: s.layers }
+      const sc = s.scenes.find((x) => x.id === id)
+      return sc ? { id, layers: sc.layers } : { id: s.activeSceneId, layers: s.layers }
+    }
     const push = () => {
       raf = 0
       const s = useStore.getState()
-      api.sendOutputState({ layers: s.layers, output: s.output, projectDir: s.projectDir, chat: s.chatBuffer, diag: s.diag, widgets: {} })
+      const lv = live(s)
+      api.sendOutputState({ layers: lv.layers, sceneKey: lv.id, output: s.output, projectDir: s.projectDir, diag: s.diag })
+    }
+    const pushChat = () => {
+      chatRaf = 0
+      api.sendOutputChat(useStore.getState().chatBuffer.slice(-50)) // 화면에 쓰는 건 최대 50개
     }
     const unsub = useStore.subscribe((s, p) => {
-      if (s.layers !== p.layers || s.output !== p.output || s.projectDir !== p.projectDir || s.chatBuffer !== p.chatBuffer || s.diag !== p.diag) {
+      const a = live(s)
+      const b = live(p)
+      if (a.layers !== b.layers || a.id !== b.id || s.output !== p.output || s.projectDir !== p.projectDir || s.diag !== p.diag) {
         if (!raf) raf = requestAnimationFrame(push)
       }
+      if (s.chatBuffer !== p.chatBuffer && !chatRaf) chatRaf = requestAnimationFrame(pushChat)
     })
     push()
+    pushChat()
     return () => {
       unsub()
       cancelAnimationFrame(raf)
+      cancelAnimationFrame(chatRaf)
     }
+  }, [])
+
+  // 자동 저장: 저장하지 않은 변경이 있으면 1분마다 복구용으로 적어 둔다
+  useEffect(() => {
+    const t = setInterval(() => writeAutosaveIfDirty().catch(() => {}), 60000)
+    return () => clearInterval(t)
   }, [])
 
   // 파일을 잘못 놓아도 창이 그 파일로 이동하지 않게 한다
@@ -157,6 +186,15 @@ export default function EditorApp() {
       } else if (ctrl && k === 's') {
         e.preventDefault()
         saveProject(e.shiftKey)
+      } else if (e.key === 'F2') {
+        if (typing || s.selectedIds.length !== 1) return
+        e.preventDefault()
+        startRename(s.selectedIds[0])
+      } else if (ctrl && !e.altKey && /^[1-9]$/.test(e.key)) {
+        const sc = s.scenes[Number(e.key) - 1]
+        if (!sc) return
+        e.preventDefault()
+        s.switchScene(sc.id)
       } else if (ctrl && k === 'd') {
         e.preventDefault()
         duplicateSelected()
@@ -194,6 +232,7 @@ export default function EditorApp() {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 10, padding: 10 }}>
         <LayerList />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <SceneBar />
           <AlignBar />
           <Preview />
         </div>

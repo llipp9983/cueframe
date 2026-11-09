@@ -1,7 +1,7 @@
 {
   "name": "cueframe",
   "productName": "CUEFRAME",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "CUEFRAME - 방송 대기화면 편집기",
   "type": "module",
   "main": "electron/main.js",
@@ -48,7 +48,12 @@
         "owner": "llipp9983",
         "repo": "cueframe"
       }
-    ]
+    ],
+    "electronLanguages": [
+      "ko",
+      "en-US"
+    ],
+    "compression": "maximum"
   },
   "dependencies": {
     "electron-updater": "^6.8.11",

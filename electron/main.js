@@ -18,6 +18,29 @@ const ROAMING = path.join(app.getPath('appData'), 'StandbyScreen')
 const LOCAL = path.join(process.env.LOCALAPPDATA || app.getPath('appData'), 'StandbyScreen')
 
 app.setName('CUEFRAME')
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required') // 위젯 소리가 바로 재생되게
+
+// 위젯(webview)은 https 페이지만, 새 창·다른 프로토콜 이동·개발자 도구·우클릭 메뉴 모두 막고 배경은 투명하게
+app.on('web-contents-created', (_e, contents) => {
+  contents.on('will-attach-webview', (_ev, webPreferences, params) => {
+    delete webPreferences.preload
+    delete webPreferences.preloadURL
+    webPreferences.nodeIntegration = false
+    webPreferences.contextIsolation = true
+    webPreferences.sandbox = true
+    params.partition = 'widget'
+    if (!String(params.src ?? '').toLowerCase().startsWith('https://')) _ev.preventDefault()
+  })
+  if (contents.getType() === 'webview') {
+    try {
+      contents.setBackgroundColor('#00000000')
+    } catch {}
+    contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    contents.on('will-navigate', (ev, url) => !String(url).toLowerCase().startsWith('https://') && ev.preventDefault())
+    contents.on('context-menu', (ev) => ev.preventDefault())
+    contents.on('devtools-opened', () => contents.closeDevTools())
+  }
+})
 app.setPath('userData', path.join(ROAMING, 'electron'))
 protocol.registerSchemesAsPrivileged([
   { scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true, bypassCSP: true } },
@@ -32,6 +55,7 @@ let editor = null
 let output = null
 let outputConf = { width: 1920, height: 1080, fps: 30 }
 let outputState = null
+let outputChat = []
 let hiddenBounds = null
 let forceClose = false
 const cancelRef = { cancelled: false }
@@ -42,8 +66,9 @@ const broadcast = (ch, data) => {
 }
 
 function pageUrl(view) {
-  if (DEV) return `http://localhost:5173/${view ? `?view=${view}` : ''}`
-  return pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).toString() + (view ? `?view=${view}` : '')
+  const file = view === 'output' ? 'output.html' : 'index.html'
+  if (DEV) return `http://localhost:5173/${view === 'output' ? file : ''}`
+  return pathToFileURL(path.join(__dirname, '..', 'dist', file)).toString()
 }
 
 function createEditor() {
@@ -225,7 +250,7 @@ function registerIpc() {
   })
   h('project:save', async ({ dir, project, recovered }) => {
     cancelRef.cancelled = false
-    const res = saveProject(dir, project, {
+    const res = await saveProject(dir, project, {
       recovered,
       cancelRef,
       onProgress: (done, total) => send(editor, 'project:progress', { done, total }),
@@ -247,6 +272,44 @@ function registerIpc() {
   })
   h('presets:get', () => store.getPresets())
   h('presets:save', (list) => store.savePresets(list))
+  h('presets:export', async (list) => {
+    const r = await dialog.showSaveDialog(editor, { title: '프리셋 내보내기', defaultPath: 'cueframe-presets.json', filters: [{ name: 'JSON', extensions: ['json'] }] })
+    if (r.canceled) return false
+    fs.writeFileSync(r.filePath, JSON.stringify({ Version: 1, Presets: list.map((p) => ({ Name: p.name, Style: p.style })) }, null, 2), 'utf8')
+    return true
+  })
+  h('presets:import', async () => {
+    const r = await dialog.showOpenDialog(editor, { title: '프리셋 가져오기', properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] })
+    if (r.canceled) return null
+    const f = r.filePaths[0]
+    if (fs.statSync(f).size > 5 * 1024 * 1024) throw new Error('파일이 너무 큽니다(5MB 이하).')
+    const data = JSON.parse(fs.readFileSync(f, 'utf8'))
+    const list = Array.isArray(data) ? data : data?.Presets
+    if (!Array.isArray(list)) throw new Error('프리셋 파일 형식이 아닙니다.')
+    return list
+      .slice(0, 200)
+      .map((p) => ({ name: String(p?.Name ?? p?.name ?? '').trim().slice(0, 60), style: p?.Style ?? p?.style }))
+      .filter((p) => p.name && p.style && typeof p.style === 'object')
+  })
+
+  // 위젯 주소: 암호화 보관, 출력 창에만 내려준다
+  h('widgets:get', (id) => store.getWidgets()[id] ?? '')
+  h('widgets:set', (id, url) => {
+    const clean = store.cleanWidgetUrl(url)
+    if (!clean) throw new Error('https:// 로 시작하는 올바른 주소를 입력하세요.')
+    store.setWidgetUrl(id, clean)
+    send(output, 'widgets:changed')
+  })
+  h('widgets:remove', (id) => {
+    store.removeWidgetUrl(id)
+    send(output, 'widgets:changed')
+  })
+  h('widgets:all', () => store.getWidgets())
+
+  // 자동 저장
+  h('autosave:write', (obj) => store.writeAutosave(obj))
+  h('autosave:read', () => store.readAutosave())
+  h('autosave:clear', () => store.clearAutosave())
 
   // 출력
   h('output:open', (conf) => openOutput(conf))
@@ -264,6 +327,12 @@ function registerIpc() {
     send(output, 'output:state', state)
   })
   h('output:getState', () => outputState)
+  // 채팅은 장면과 따로 보낸다(채팅이 올 때마다 장면 전체를 다시 보내지 않으려고)
+  ipcMain.on('output:chat', (_e, chat) => {
+    outputChat = chat
+    send(output, 'output:chat', chat)
+  })
+  h('output:getChat', () => outputChat)
   h('output:info', () => ({ ...outputConf, scale: scaleOf() }))
 
   // 치지직

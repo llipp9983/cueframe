@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { emptyProject } from '../core/project.js'
+import { emptyProject, newScene, MAX_SCENES } from '../core/project.js'
+import { newId } from '../core/layer.js'
 import { pushMessage } from '../core/chat.js'
 
 const HISTORY_MAX = 100
@@ -8,9 +9,14 @@ const COALESCE_MS = 1000
 const shallowSame = (a, b) => Object.keys(b).every((k) => a[k] === b[k])
 
 export const useStore = create((set, get) => ({
-  layers: [],
+  layers: [], // 지금 편집 중인 장면의 레이어(장면 목록의 같은 장면보다 항상 최신)
+  scenes: [],
+  activeSceneId: null,
+  liveSceneId: null,
+  liveFollow: true, // true면 편집 중인 장면을 바로 방송에 내보낸다
+  renameId: null, // 이름을 바꾸는 중인 레이어
   selectedIds: [],
-  output: { width: 1920, height: 1080, fps: 30 },
+  output: { width: 1920, height: 1080, fps: 30, transition: 'fade' },
   projectName: '제목 없음',
   projectDir: null,
   recovered: false,
@@ -112,8 +118,14 @@ export const useStore = create((set, get) => ({
 
   // ── 프로젝트
   loadProject({ project, dir, recovered }) {
+    const scenes = project.scenes?.length ? project.scenes : [{ id: 'main', name: '장면 1', layers: project.layers ?? [] }]
+    const active = scenes.find((s) => s.id === project.activeSceneId) ?? scenes[0]
     set({
-      layers: project.layers,
+      scenes,
+      activeSceneId: active.id,
+      liveSceneId: active.id,
+      liveFollow: true,
+      layers: active.layers,
       output: project.output,
       projectName: project.name,
       projectDir: dir ?? null,
@@ -130,8 +142,75 @@ export const useStore = create((set, get) => ({
   newProject() {
     get().loadProject({ project: emptyProject(), dir: null })
   },
-  markSaved({ layers, dir, name }) {
-    set({ layers, projectDir: dir, projectName: name ?? get().projectName, dirty: false, recovered: false })
+  /** 저장한 결과로 경로가 바뀐 장면들을 반영한다(되돌리기 기록은 건드리지 않음). */
+  markSaved({ scenes, dir, name }) {
+    const s = get()
+    const merged = s.scenes.map((sc) => {
+      const saved = scenes?.find((x) => x.id === sc.id)
+      if (!saved) return sc
+      const cur = sc.id === s.activeSceneId ? s.layers : sc.layers
+      return { ...sc, layers: cur.map((l) => saved.layers.find((x) => x.id === l.id) ?? l) }
+    })
+    const active = merged.find((x) => x.id === s.activeSceneId)
+    set({ scenes: merged, layers: active.layers, projectDir: dir, projectName: name ?? s.projectName, dirty: false, recovered: false })
+  },
+  /** 저장·자동 저장용: 지금 편집 중인 레이어까지 합친 프로젝트 */
+  getProject() {
+    const s = get()
+    return { name: s.projectName, output: s.output, scenes: s.allScenes(), activeSceneId: s.activeSceneId }
+  },
+  allScenes() {
+    const s = get()
+    return s.scenes.map((sc) => (sc.id === s.activeSceneId ? { ...sc, layers: s.layers } : sc))
+  },
+
+  // ── 장면
+  switchScene(id) {
+    const s = get()
+    if (id === s.activeSceneId) return
+    const scenes = s.allScenes()
+    const target = scenes.find((x) => x.id === id)
+    if (!target) return
+    set({ scenes, activeSceneId: id, layers: target.layers, selectedIds: [], past: [], future: [], lastKey: null, gestureBase: null })
+  },
+  addScene({ copy = false } = {}) {
+    const s = get()
+    if (s.scenes.length >= MAX_SCENES) return null
+    const scenes = s.allScenes()
+    const cur = scenes.find((x) => x.id === s.activeSceneId)
+    const sc = newScene(copy ? `${cur.name} 복사` : `장면 ${scenes.length + 1}`.slice(0, 40), copy ? cur.layers.map((l) => ({ ...l, id: newId() })) : [])
+    set({ scenes: [...scenes, sc], dirty: true })
+    get().switchScene(sc.id)
+    return sc.id
+  },
+  renameScene(id, name) {
+    const n = String(name).trim().slice(0, 40)
+    if (!n) return
+    set({ scenes: get().scenes.map((x) => (x.id === id ? { ...x, name: n } : x)), dirty: true })
+  },
+  deleteScene(id) {
+    const s = get()
+    if (s.scenes.length <= 1) return
+    const scenes = s.allScenes().filter((x) => x.id !== id)
+    const fallback = scenes[0]
+    const patch = { scenes, dirty: true }
+    if (id === s.activeSceneId) Object.assign(patch, { activeSceneId: fallback.id, layers: fallback.layers, selectedIds: [], past: [], future: [], lastKey: null })
+    if (s.liveSceneId === id) patch.liveSceneId = patch.activeSceneId ?? s.activeSceneId
+    set(patch)
+  },
+  setLiveScene(id) {
+    set({ liveSceneId: id, liveFollow: false })
+  },
+  setLiveFollow(on) {
+    set({ liveFollow: on, liveSceneId: on ? get().liveSceneId : get().activeSceneId })
+  },
+  moveScene(id, dir) {
+    const scenes = get().allScenes()
+    const i = scenes.findIndex((x) => x.id === id)
+    const j = i + dir
+    if (i < 0 || j < 0 || j >= scenes.length) return
+    ;[scenes[i], scenes[j]] = [scenes[j], scenes[i]]
+    set({ scenes, dirty: true })
   },
   setName(name) {
     set({ projectName: name, dirty: true })

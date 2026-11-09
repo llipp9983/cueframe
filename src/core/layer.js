@@ -1,15 +1,17 @@
 // 레이어 자료형과 정리(Normalize). 화면과 무관한 순수 함수.
+import { clamp, num } from './util.js'
+import { normalizeFx } from './fx.js'
+import { normalizeTextStyle } from './textStyle.js'
+
+export { clamp, num }
 export const CANVAS_W = 1920
 export const CANVAS_H = 1080
-export const KINDS = ['Background', 'Table', 'Prop', 'Chat', 'Widget']
-export const KIND_LABEL = { Background: '배경', Table: '테이블', Prop: '소품', Chat: '채팅', Widget: '위젯' }
+export const KINDS = ['Background', 'Table', 'Prop', 'Text', 'Chat', 'Widget']
+export const KIND_LABEL = { Background: '배경', Table: '테이블', Prop: '소품', Text: '문구', Chat: '채팅', Widget: '위젯' }
 export const MAX_LAYERS = 500
 export const MAX_COORD = 100000
 export const MIN_SIZE = 8
 export const MAX_SIZE = 100000
-
-export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
-export const num = (v, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
 
 export function newId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
@@ -36,6 +38,8 @@ export function createLayer(kind, props = {}) {
     keepAspect: true,
     surfaceLineY: null,
     chat: null,
+    text: null,
+    fx: null,
     flipX: false,
     ...props,
   }
@@ -77,6 +81,8 @@ export function normalizeLayer(raw, { fromDisk = false } = {}) {
     keepAspect: raw.keepAspect !== false,
     surfaceLineY: typeof surf === 'number' && Number.isFinite(surf) ? clamp(surf, 0, 1) : null,
     chat: kind === 'Chat' ? raw.chat ?? null : null,
+    text: kind === 'Text' ? normalizeTextStyle(raw.text) : null,
+    fx: raw.fx ? normalizeFx(raw.fx) : null,
     flipX: raw.flipX === true,
   }
 }

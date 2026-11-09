@@ -182,13 +182,15 @@ function Interactive({ scale, w, h }) {
   return <div ref={ref} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ position: 'absolute', inset: 0, width: w, height: h, cursor: 'default', touchAction: 'none' }} />
 }
 
+// 레이어가 다시 그려지지 않도록 항상 같은 함수를 넘긴다
+const onMedia = (l, ok) => useStore.getState().setMissing(l.id, !ok)
+
 export default function Preview() {
   const [over, setOver] = useState(false)
   const layers = useStore((s) => s.layers)
   const projectDir = useStore((s) => s.projectDir)
   const chat = useStore((s) => s.chatBuffer)
   const missing = useStore((s) => s.missing)
-  const setMissing = useStore((s) => s.setMissing)
   return (
     <Fit
       style={{ flex: 1, minWidth: 0, minHeight: 0, background: 'var(--bg0)', borderRadius: 6, overflow: 'hidden', outline: over ? '2px dashed var(--accent)' : undefined, outlineOffset: -2 }}
@@ -210,7 +212,7 @@ export default function Preview() {
     >
       {({ scale, w, h }) => (
         <>
-          <Stage layers={layers} projectDir={projectDir} chat={chat} scale={scale} missing={missing} onMedia={(l, ok) => setMissing(l.id, !ok)} />
+          <Stage layers={layers} projectDir={projectDir} chat={chat} scale={scale} missing={missing} onMedia={onMedia} />
           <Overlay scale={scale} w={w} h={h} />
           <Interactive scale={scale} w={w} h={h} />
         </>

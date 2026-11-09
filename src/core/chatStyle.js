@@ -1,5 +1,7 @@
 // 채팅창 설정(ChatStyle) 기본값과 정리(Normalize).
-import { clamp, num } from './layer.js'
+import { clamp, num, isHex, hex, bool, oneOf, str } from './util.js'
+
+export { isHex }
 
 export const PATTERNS = ['none', 'dots', 'stripes', 'grid', 'checks']
 export const PATTERN_LABEL = { none: '없음', dots: '물방울', stripes: '줄무늬', grid: '격자', checks: '체크' }
@@ -7,13 +9,6 @@ export const SHAPES = ['heart', 'sparkle', 'star', 'ribbon', 'clover', 'leaf', '
 export const SHAPE_LABEL = { heart: '하트', sparkle: '반짝이', star: '별', ribbon: '리본', clover: '클로버', leaf: '잎사귀', crown: '왕관', dot: '점' }
 export const MAX_IMAGE_ORNAMENTS = 10
 export const MAX_SHAPE_ORNAMENTS = 16
-
-const HEX = /^#[0-9a-fA-F]{6}$/
-export const isHex = (v) => typeof v === 'string' && HEX.test(v)
-const hex = (v, d) => (isHex(v) ? v.toUpperCase() : d)
-const bool = (v, d) => (typeof v === 'boolean' ? v : d)
-const oneOf = (v, list, d) => (list.includes(v) ? v : d)
-const str = (v, max, d = '') => (typeof v === 'string' ? v.slice(0, max) : d)
 
 export function defaultChatStyle() {
   return {

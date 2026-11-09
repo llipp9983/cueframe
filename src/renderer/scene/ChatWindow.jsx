@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { SHAPE_PATHS } from '../../core/shapes.js'
 import { visibleMessages } from '../../core/chat.js'
 import { defaultChatStyle } from '../../core/chatStyle.js'
@@ -29,7 +29,7 @@ function Pattern({ s }) {
   return <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', ...bg }} />
 }
 
-function Message({ m, s }) {
+const Message = memo(function Message({ m, s }) {
   const streamer = m.streamer
   const right = streamer && s.streamerRight
   const nickColor = streamer ? s.streamerNickColor : s.nickColor
@@ -78,9 +78,9 @@ function Message({ m, s }) {
       </div>
     </div>
   )
-}
+})
 
-export default function ChatWindow({ style, messages, projectDir, width, height }) {
+function ChatWindow({ style, messages, projectDir, width, height }) {
   const s = style ?? defaultChatStyle()
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
@@ -151,3 +151,5 @@ export default function ChatWindow({ style, messages, projectDir, width, height 
     </div>
   )
 }
+
+export default memo(ChatWindow)

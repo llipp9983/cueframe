@@ -86,3 +86,50 @@ export function secureWrite(name, obj) {
 export function secureDelete(name) {
   fs.rmSync(path.join(paths.local, name), { force: true })
 }
+
+// ── 위젯 주소(레이어 id별, 암호화). 프로젝트 파일에는 절대 넣지 않는다.
+export function getWidgets() {
+  const r = secureRead('widgets-cueframe.bin')
+  return r && typeof r === 'object' ? r : {}
+}
+export function setWidgetUrl(id, url) {
+  const all = getWidgets()
+  all[id] = url
+  secureWrite('widgets-cueframe.bin', all)
+}
+export function removeWidgetUrl(id) {
+  const all = getWidgets()
+  if (id in all) {
+    delete all[id]
+    secureWrite('widgets-cueframe.bin', all)
+  }
+}
+/** https 주소만 허용. 올바르지 않으면 null */
+export function cleanWidgetUrl(raw) {
+  try {
+    const u = new URL(String(raw ?? '').trim())
+    if (u.protocol !== 'https:' || String(raw).length > 2000) return null
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
+// ── 자동 저장(저장하지 않은 작업 복구용)
+const autosaveFile = () => path.join(paths.roaming, 'autosave', 'autosave.json')
+export function writeAutosave(obj) {
+  fs.mkdirSync(path.dirname(autosaveFile()), { recursive: true })
+  const tmp = autosaveFile() + '.tmp'
+  fs.writeFileSync(tmp, JSON.stringify(obj), 'utf8')
+  fs.renameSync(tmp, autosaveFile())
+}
+export function readAutosave() {
+  try {
+    return JSON.parse(fs.readFileSync(autosaveFile(), 'utf8'))
+  } catch {
+    return null
+  }
+}
+export function clearAutosave() {
+  fs.rmSync(autosaveFile(), { force: true })
+}

@@ -1,10 +1,11 @@
 // 장면(레이어 배열) 조작. 모두 새 배열을 돌려주는 순수 함수. layers[0] = 맨 뒤.
 import { CANVAS_W, CANVAS_H, createLayer, newId, fileNameOf } from './layer.js'
+import { defaultTextStyle } from './textStyle.js'
 
 export const SNAP_DISTANCE = 60
 
 const isBackdrop = (l) => l.kind === 'Background' || l.kind === 'Table'
-const isTop = (l) => l.kind === 'Chat' || l.kind === 'Widget'
+const isTop = (l) => l.kind === 'Text' || l.kind === 'Chat' || l.kind === 'Widget'
 
 /** 새 레이어를 규칙에 맞는 자리에 넣는다. 배경은 기존 배경을 교체한다. */
 export function insertLayer(layers, layer) {
@@ -26,6 +27,7 @@ export function insertLayer(layers, layer) {
       index = i < 0 ? list.length : i
       break
     }
+    case 'Text':
     case 'Chat': {
       const i = list.findIndex((l) => l.kind === 'Widget')
       index = i < 0 ? list.length : i
@@ -89,6 +91,24 @@ export function makeChat() {
   })
 }
 
+export function makeText(mode = 'text') {
+  const style = defaultTextStyle(mode)
+  const names = { text: '문구', clock: '시계', countdown: '카운트다운' }
+  return createLayer('Text', {
+    name: names[mode],
+    x: 460,
+    y: { text: 120, countdown: 380, clock: 720 }[mode],
+    width: 1000,
+    height: mode === 'countdown' ? 280 : 200,
+    keepAspect: false,
+    text: style,
+  })
+}
+
+export function makeWidget(name = '치지직 위젯') {
+  return createLayer('Widget', { name, x: 0, y: 0, width: 1920, height: 1080, keepAspect: false })
+}
+
 /** 기준 테이블: 선택된 테이블, 없으면 마지막 보이는 테이블. */
 export function referenceTable(layers, selectedIds = []) {
   const sel = layers.find((l) => l.kind === 'Table' && selectedIds.includes(l.id) && l.visible)
@@ -136,7 +156,7 @@ export function removeLayers(layers, ids) {
 }
 
 export function canDuplicate(l) {
-  return l && (l.kind === 'Table' || l.kind === 'Prop')
+  return l && (l.kind === 'Table' || l.kind === 'Prop' || l.kind === 'Text')
 }
 
 /** 복제: 이름 + " 복사", +24/+24, 잠금 해제, 원본 바로 위. */
