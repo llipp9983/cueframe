@@ -211,11 +211,17 @@ function registerIpc() {
   })
 
   h('dialog:pickMedia', async ({ kind = 'any', multi = false } = {}) => {
+    // 마지막으로 파일을 고른 폴더에서 열고, 그 폴더가 없어졌으면 기본 위치로
+    const last = store.getSettings().lastMediaDir
     const r = await dialog.showOpenDialog(editor, {
       properties: ['openFile', ...(multi ? ['multiSelections'] : [])],
       filters: MEDIA_FILTERS[kind] ?? MEDIA_FILTERS.any,
+      defaultPath: last && fs.existsSync(last) ? last : undefined,
     })
-    return r.canceled ? [] : r.filePaths.filter(isMedia)
+    if (r.canceled) return []
+    const files = r.filePaths.filter(isMedia)
+    if (files[0]) store.setSettings({ lastMediaDir: path.dirname(files[0]) })
+    return files
   })
   h('dialog:message', async (opts) => {
     const r = await dialog.showMessageBox(editor, opts)

@@ -109,6 +109,7 @@ export async function addBackgroundFromPath(path) {
 /** 탐색기에서 끌어다 놓은 파일들. 영상은 배경, 이미지는 소품으로 추가한다. */
 export async function dropFiles(files, at) {
   const paths = files.map((f) => api.pathForFile(f)).filter(Boolean)
+  if (paths[0]) api.setSettings({ lastMediaDir: paths[0].replace(/[\\/][^\\/]*$/, '') }) // 끌어다 놓은 폴더도 기억
   const video = paths.find((x) => isVideoPath(x))
   const images = paths.filter((x) => /.(png|jpe?g|gif|webp|bmp)$/i.test(x))
   if (!video && !images.length) {
