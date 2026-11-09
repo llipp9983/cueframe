@@ -35,6 +35,8 @@ const stub = {
     connect: noop,
     disconnect: noop,
   },
+  update: { state: async () => ({ state: 'none' }), check: noop, download: noop, install: noop, dismiss: noop },
+  onUpdateState: unsub,
   openLogFolder: noop,
   exportLog: noop,
   log: () => {},

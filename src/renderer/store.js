@@ -24,6 +24,8 @@ export const useStore = create((set, get) => ({
   analysis: {}, // mediaPath -> {surface, base}
   missing: {}, // layerId -> true
   chatBuffer: [],
+  update: { state: 'none' },
+  updateHidden: false,
   sampleChat: false,
   guideSnap: true, // 끌 때 가장자리·중앙·다른 요소에 붙이기
   guides: [], // 지금 보여 줄 스냅 가이드선

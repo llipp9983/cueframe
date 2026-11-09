@@ -5,6 +5,7 @@ import MenuBar from './MenuBar.jsx'
 import LayerList from './LayerList.jsx'
 import Preview from './Preview.jsx'
 import PropsPanel from './PropsPanel.jsx'
+import UpdateBanner from './UpdateBanner.jsx'
 import AlignBar from './AlignBar.jsx'
 import BottomBars from './BottomBars.jsx'
 import Dialogs from '../dialogs/Dialogs.jsx'
@@ -37,6 +38,7 @@ export default function EditorApp() {
     refreshRecent()
     loadUserPresets()
     api.chzzk.status().then((c) => s.set({ chzzk: c }))
+    api.update.state().then((u) => s.set({ update: u }))
     api.getSettings().then(async (st) => {
       if (st.lastProject) {
         const res = await api.openProject(st.lastProject)
@@ -47,6 +49,7 @@ export default function EditorApp() {
       }
     })
     const offs = [
+      api.onUpdateState((u) => useStore.getState().set({ update: u, updateHidden: false })),
       api.onChzzkStatus((c) => useStore.getState().set({ chzzk: c })),
       api.onChatMessage((m) => useStore.getState().addChat(m)),
       api.onProgress((p) => useStore.getState().set({ saving: p })),
@@ -154,6 +157,7 @@ export default function EditorApp() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', pointerEvents: saving ? 'auto' : undefined }}>
       <MenuBar />
+      <UpdateBanner />
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 10, padding: 10 }}>
         <LayerList />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>

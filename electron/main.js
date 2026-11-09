@@ -8,6 +8,7 @@ import { initLog, info, warn, error, logDir, redact } from './log.js'
 import * as store from './store.js'
 import * as chzzk from './chzzk.js'
 import { openProject, saveProject, isMedia } from './projectIO.js'
+import * as updater from './updater.js'
 import { fitOutputResize } from '../src/core/outputResize.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -272,6 +273,13 @@ function registerIpc() {
   h('chzzk:connect', () => chzzk.connect())
   h('chzzk:disconnect', () => chzzk.disconnect())
 
+  // 업데이트
+  h('update:state', () => updater.getState())
+  h('update:check', () => updater.check(true))
+  h('update:download', () => updater.download())
+  h('update:install', () => updater.install())
+  h('update:dismiss', () => updater.dismiss())
+
   // 로그
   h('log:openFolder', () => shell.openPath(logDir()))
   h('log:export', async () => {
@@ -329,6 +337,7 @@ app.whenReady().then(() => {
   chzzk.init((ch, data) => {
     send(editor, ch, data)
   })
+  updater.init((ch, data) => send(editor, ch, data), { beforeInstall: () => { forceClose = true } })
   registerIpc()
   createEditor()
   setTimeout(() => chzzk.autoConnectIfNeeded(), 1500)

@@ -1,7 +1,7 @@
 {
   "name": "cueframe",
   "productName": "CUEFRAME",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CUEFRAME - 방송 대기화면 편집기",
   "type": "module",
   "main": "electron/main.js",
@@ -10,7 +10,7 @@
     "build": "vite build",
     "start": "vite build && electron .",
     "test": "vitest run",
-    "dist": "vite build && electron-builder"
+    "dist": "vite build && electron-builder --publish never"
   },
   "build": {
     "appId": "StandbyScreen",
@@ -36,9 +36,17 @@
     "directories": {
       "output": "release"
     },
-    "artifactName": "CUEFRAME-${version}-${os}-${arch}.${ext}"
+    "artifactName": "CUEFRAME-${version}-${os}-${arch}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "llipp9983",
+        "repo": "cueframe"
+      }
+    ]
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "fflate": "^0.8.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
