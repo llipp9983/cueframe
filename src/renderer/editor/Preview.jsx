@@ -1,10 +1,11 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useStore } from '../store.js'
 import { Stage, Fit } from '../scene/SceneView.jsx'
 import { corners, handlePoints, hitHandle, hitLayer, resizeLayer, rotationFromPointer, HANDLE_SIZE, center } from '../../core/geometry.js'
 import { referenceTable, surfaceY, snapProps } from '../../core/scene.js'
 import { clamp } from '../../core/layer.js'
-import { boxOf, unionBox, snapMove } from '../../core/align.js'
+import { dropFiles } from './actions.js'
+import { boxOf, unionBox, snapMove, snapPoint } from '../../core/align.js'
 
 const SEL = '#4aa3ff'
 const LOCK = '#f2994a'
@@ -137,7 +138,18 @@ function Interactive({ scale, w, h }) {
       st.set({ guides })
       next = st.layers.map((l) => (d.starts[l.id] ? { ...l, x: round(d.starts[l.id].x + dx), y: round(d.starts[l.id].y + dy) } : l))
     } else if (d.mode === 'resize') {
-      const r = resizeLayer(d.start, d.handle, p.x, p.y)
+      let q = p
+      let guides = []
+      if (st.guideSnap && !e.altKey && d.start.rotation === 0) {
+        const hd = d.handle
+        const axes = { x: hd.includes('e') || hd.includes('w'), y: hd.includes('n') || hd.includes('s') }
+        const others = st.layers.filter((l) => l.id !== d.id && l.visible && l.kind !== 'Background').map(boxOf)
+        const sp = snapPoint(p.x, p.y, others, 8 / scale, axes)
+        q = { x: sp.x, y: sp.y }
+        guides = sp.guides
+      }
+      st.set({ guides })
+      const r = resizeLayer(d.start, d.handle, q.x, q.y)
       next = st.layers.map((l) => (l.id === d.id ? { ...l, x: round(r.x), y: round(r.y), width: round(r.width), height: round(r.height) } : l))
     } else if (d.mode === 'rotate') {
       const rot = Math.round(rotationFromPointer(d.start, p.x, p.y, e.shiftKey)) % 360
@@ -171,13 +183,31 @@ function Interactive({ scale, w, h }) {
 }
 
 export default function Preview() {
+  const [over, setOver] = useState(false)
   const layers = useStore((s) => s.layers)
   const projectDir = useStore((s) => s.projectDir)
   const chat = useStore((s) => s.chatBuffer)
   const missing = useStore((s) => s.missing)
   const setMissing = useStore((s) => s.setMissing)
   return (
-    <Fit style={{ flex: 1, minWidth: 0, minHeight: 0, background: 'var(--bg0)', borderRadius: 6, overflow: 'hidden' }}>
+    <Fit
+      style={{ flex: 1, minWidth: 0, minHeight: 0, background: 'var(--bg0)', borderRadius: 6, overflow: 'hidden', outline: over ? '2px dashed var(--accent)' : undefined, outlineOffset: -2 }}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+        setOver(true)
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setOver(false)
+        const files = [...e.dataTransfer.files]
+        if (!files.length) return
+        const r = e.currentTarget.querySelector('[data-stage]').getBoundingClientRect()
+        dropFiles(files, { x: ((e.clientX - r.left) / r.width) * 1920, y: ((e.clientY - r.top) / r.height) * 1080 })
+      }}
+    >
       {({ scale, w, h }) => (
         <>
           <Stage layers={layers} projectDir={projectDir} chat={chat} scale={scale} missing={missing} onMedia={(l, ok) => setMissing(l.id, !ok)} />

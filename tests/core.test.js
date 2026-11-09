@@ -238,3 +238,18 @@ describe('align / snap / reorder', () => {
     expect(reorderLayers(s, [a.id], a.id, 'above')).toBe(s)
   })
 })
+
+import { snapPoint } from '../src/core/align.js'
+describe('snapPoint (resize)', () => {
+  it('snaps a dragged edge to the canvas edge and other layer', () => {
+    expect(snapPoint(1915, 500, [], 10)).toMatchObject({ x: 1920, y: 500 })
+    const o = boxOf(L('Prop', { x: 700, y: 100, width: 100, height: 100 }))
+    const r = snapPoint(803, 400, [o], 10, { x: true, y: false })
+    expect(r.x).toBe(800)
+    expect(r.y).toBe(400)
+    expect(r.guides).toEqual([{ axis: 'x', at: 800 }])
+  })
+  it('does nothing beyond the threshold', () => {
+    expect(snapPoint(500, 500, [], 5)).toMatchObject({ x: 500, y: 500, guides: [] })
+  })
+})

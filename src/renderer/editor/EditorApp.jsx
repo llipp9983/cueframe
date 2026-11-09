@@ -12,8 +12,11 @@ import Dialogs from '../dialogs/Dialogs.jsx'
 import { nextSampleMessage, resetSample } from '../../core/chat.js'
 import { mediaUrl, loadImageInfo, loadVideoInfo } from '../scene/media.js'
 import { isVideoPath } from '../../core/layer.js'
-import { newProject, openProject, saveProject, confirmDiscard, deleteSelected, nudgeSelected, refreshRecent, loadUserPresets } from './actions.js'
+import * as actions from './actions.js'
+import { newProject, openProject, saveProject, confirmDiscard, deleteSelected, nudgeSelected, duplicateSelected, flipSelected, alignSelected, selectAll, setOpacitySelected, refreshRecent, loadUserPresets } from './actions.js'
 
+if (import.meta.env.DEV) window.__actions = actions // 개발 중 점검용
+const ALIGN_KEYS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'top', ArrowDown: 'bottom', KeyC: 'hcenter', KeyM: 'vmiddle' }
 const isTyping = (el) => {
   if (!el) return false
   const t = el.tagName
@@ -39,6 +42,7 @@ export default function EditorApp() {
     loadUserPresets()
     api.chzzk.status().then((c) => s.set({ chzzk: c }))
     api.update.state().then((u) => s.set({ update: u }))
+    api.outputIsOpen().then((o) => s.set({ outputOpen: !!o }))
     api.getSettings().then(async (st) => {
       if (st.lastProject) {
         const res = await api.openProject(st.lastProject)
@@ -49,6 +53,8 @@ export default function EditorApp() {
       }
     })
     const offs = [
+      api.onOutputOpened(() => useStore.getState().set({ outputOpen: true })),
+      api.onOutputClosed(() => useStore.getState().set({ outputOpen: false })),
       api.onUpdateState((u) => useStore.getState().set({ update: u, updateHidden: false })),
       api.onChzzkStatus((c) => useStore.getState().set({ chzzk: c })),
       api.onChatMessage((m) => useStore.getState().addChat(m)),
@@ -114,6 +120,17 @@ export default function EditorApp() {
     }
   }, [])
 
+  // 파일을 잘못 놓아도 창이 그 파일로 이동하지 않게 한다
+  useEffect(() => {
+    const stop = (e) => e.preventDefault()
+    window.addEventListener('dragover', stop)
+    window.addEventListener('drop', stop)
+    return () => {
+      window.removeEventListener('dragover', stop)
+      window.removeEventListener('drop', stop)
+    }
+  }, [])
+
   // 단축키
   useEffect(() => {
     const onKey = (e) => {
@@ -140,6 +157,22 @@ export default function EditorApp() {
       } else if (ctrl && k === 's') {
         e.preventDefault()
         saveProject(e.shiftKey)
+      } else if (ctrl && k === 'd') {
+        e.preventDefault()
+        duplicateSelected()
+      } else if (ctrl && k === 'a') {
+        if (typing) return
+        e.preventDefault()
+        selectAll()
+      } else if (ctrl && k === 'h') {
+        e.preventDefault()
+        flipSelected()
+      } else if (e.altKey && e.shiftKey && !ctrl && ALIGN_KEYS[e.code]) {
+        e.preventDefault()
+        alignSelected(ALIGN_KEYS[e.code])
+      } else if (!ctrl && !e.altKey && !e.shiftKey && /^[0-9]$/.test(e.key) && !typing && !isControlFocus(document.activeElement) && s.selectedIds.length) {
+        e.preventDefault()
+        setOpacitySelected(e.key === '0' ? 1 : Number(e.key) / 10)
       } else if (e.key.startsWith('Arrow') && !ctrl) {
         if (typing || isControlFocus(document.activeElement) || !s.selectedIds.length) return
         e.preventDefault()

@@ -67,7 +67,7 @@ export function Stage({ layers, projectDir, chat, scale = 1, missing = {}, onMed
 }
 
 /** 컨테이너 크기에 맞춰 무대를 줄여 보여 준다. 자식에 scale·offset을 알려 준다. */
-export function Fit({ children, className, style }) {
+export function Fit({ children, className, style, ...rest }) {
   const ref = useRef(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
   useEffect(() => {
@@ -81,8 +81,8 @@ export function Fit({ children, className, style }) {
   const w = CANVAS_W * scale
   const h = CANVAS_H * scale
   return (
-    <div ref={ref} className={className} style={{ position: 'relative', ...style }}>
-      <div style={{ position: 'absolute', left: (size.w - w) / 2, top: (size.h - h) / 2, width: w, height: h }}>{children({ scale, w, h })}</div>
+    <div ref={ref} className={className} style={{ position: 'relative', ...style }} {...rest}>
+      <div data-stage style={{ position: 'absolute', left: (size.w - w) / 2, top: (size.h - h) / 2, width: w, height: h }}>{children({ scale, w, h })}</div>
     </div>
   )
 }

@@ -13,6 +13,7 @@ import { fitOutputResize } from '../src/core/outputResize.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEV = process.env.NODE_ENV === 'development'
+const ICON = path.join(__dirname, '..', 'build', 'icon.png')
 const ROAMING = path.join(app.getPath('appData'), 'StandbyScreen')
 const LOCAL = path.join(process.env.LOCALAPPDATA || app.getPath('appData'), 'StandbyScreen')
 
@@ -53,6 +54,7 @@ function createEditor() {
     minHeight: 600,
     backgroundColor: '#121416',
     title: 'CUEFRAME',
+    icon: ICON,
     autoHideMenuBar: true,
     show: false,
     webPreferences: {
@@ -112,6 +114,7 @@ function openOutput(conf) {
     minWidth: 320,
     backgroundColor: '#000000',
     title: '방송 출력 창',
+    icon: ICON,
     autoHideMenuBar: true,
     maximizable: false,
     fullscreenable: false,

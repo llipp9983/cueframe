@@ -7,6 +7,7 @@ import {
   insertLayer, hasKind, makeBackground, makeTable, makeProp, makeChat, referenceTable, surfaceY, placeOnSurface,
   duplicateLayers, moveLayers, removeLayers, canDuplicate,
 } from '../../core/scene.js'
+import { hitTest } from '../../core/geometry.js'
 import { alignLayers, distributeLayers } from '../../core/align.js'
 import { mediaUrl, resolveMedia, loadImageInfo, loadVideoInfo, estimateGifMemory } from '../scene/media.js'
 import { ask, askSave, inform, promptName, showText } from '../dialogs/dialogStore.js'
@@ -70,22 +71,51 @@ export async function addTable() {
 
 export async function addProps() {
   const paths = await api.pickMedia({ kind: 'prop', multi: true })
+  await addPropsFromPaths(paths, null)
+}
+
+/** at = 끌어다 놓은 캔버스 좌표. 테이블 위에 놓으면 윗면에 바로 올린다. */
+export async function addPropsFromPaths(paths, at) {
   if (!paths.length) return
   let layers = st().layers
   const ids = []
-  const table = referenceTable(layers, st().selectedIds)
+  const dropTable = at ? [...layers].reverse().find((l) => l.kind === 'Table' && l.visible && hitTest(l, at.x, at.y)) : null
+  const table = dropTable ?? referenceTable(layers, st().selectedIds)
   const sy = table ? surfaceY(table, st().analysis[table.mediaPath]) : null
   for (let i = 0; i < paths.length; i++) {
     const info = await inspect(paths[i], 'prop')
     if (!info) continue
     st().setAnalysis(paths[i], info.analysis)
     let layer = makeProp(paths[i], info.width, info.height)
-    layer = { ...layer, x: Math.round(layer.x + (i - (paths.length - 1) / 2) * (layer.width + 20)) }
-    if (snapOn.value && sy != null) layer = placeOnSurface(layer, sy, info.analysis)
+    const spread = Math.round((i - (paths.length - 1) / 2) * (layer.width + 20))
+    if (at) layer = { ...layer, x: Math.round(at.x - layer.width / 2 + spread), y: Math.round(at.y - layer.height / 2) }
+    else layer = { ...layer, x: Math.round(layer.x + spread) }
+    if (sy != null && (dropTable || (!at && snapOn.value))) layer = placeOnSurface(layer, sy, info.analysis)
     layers = insertLayer(layers, layer)
     ids.push(layer.id)
   }
   if (ids.length) st().commit(layers, { selection: ids })
+}
+
+export async function addBackgroundFromPath(path) {
+  const info = await inspect(path, 'background')
+  if (!info) return
+  const layer = makeBackground(path, info.width, info.height)
+  st().setAnalysis(path, info.analysis)
+  st().commit(insertLayer(st().layers, layer), { selection: [layer.id] })
+}
+
+/** 탐색기에서 끌어다 놓은 파일들. 영상은 배경, 이미지는 소품으로 추가한다. */
+export async function dropFiles(files, at) {
+  const paths = files.map((f) => api.pathForFile(f)).filter(Boolean)
+  const video = paths.find((x) => isVideoPath(x))
+  const images = paths.filter((x) => /.(png|jpe?g|gif|webp|bmp)$/i.test(x))
+  if (!video && !images.length) {
+    st().set({ notice: '이미지(PNG·JPG·GIF·WEBP)나 영상(MP4)만 끌어다 놓을 수 있습니다.' })
+    return
+  }
+  if (video) await addBackgroundFromPath(video)
+  if (images.length) await addPropsFromPaths(images, at)
 }
 
 export async function addChat() {
@@ -105,6 +135,15 @@ export async function relink(id) {
 }
 
 // ── 레이어 조작
+export function selectAll() {
+  st().select(st().layers.map((l) => l.id))
+}
+export function setOpacitySelected(v) {
+  const { layers, selectedIds } = st()
+  if (!layers.some((l) => selectedIds.includes(l.id) && l.opacity !== v)) return
+  st().commit(layers.map((l) => (selectedIds.includes(l.id) ? { ...l, opacity: v } : l)), { key: 'opacity-key' })
+}
+
 export function toggleVisible(id) {
   const l = st().layers.find((x) => x.id === id)
   if (l) st().patchLayer(id, { visible: !l.visible })

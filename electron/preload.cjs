@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 const invoke = (ch) => (...a) => ipcRenderer.invoke(ch, ...a)
 const on = (ch) => (cb) => {
@@ -9,6 +9,13 @@ const on = (ch) => (cb) => {
 
 contextBridge.exposeInMainWorld('api', {
   isElectron: true,
+  pathForFile: (file) => {
+    try {
+      return webUtils.getPathForFile(file)
+    } catch {
+      return ''
+    }
+  },
   appInfo: invoke('app:info'),
   closeNow: invoke('app:closeNow'),
   pickMedia: invoke('dialog:pickMedia'),

@@ -110,3 +110,27 @@ export function reorderLayers(layers, ids, targetId, place) {
   const next = [...rest.slice(0, at), ...moving, ...rest.slice(at)]
   return next.every((l, i) => l === layers[i]) ? layers : next
 }
+
+/** 크기를 조절할 때 끄는 점(포인터) 하나를 가장자리·중앙선에 붙인다. axes로 붙일 방향을 고른다. */
+export function snapPoint(px, py, others, threshold, axes = { x: true, y: true }) {
+  let bx = null
+  let by = null
+  for (const o of [CANVAS_BOX, ...others]) {
+    if (axes.x) {
+      for (const t of [o.left, o.cx, o.right]) {
+        const d = t - px
+        if (Math.abs(d) <= threshold && (bx === null || Math.abs(d) < Math.abs(bx.d))) bx = { d, at: t }
+      }
+    }
+    if (axes.y) {
+      for (const t of [o.top, o.cy, o.bottom]) {
+        const d = t - py
+        if (Math.abs(d) <= threshold && (by === null || Math.abs(d) < Math.abs(by.d))) by = { d, at: t }
+      }
+    }
+  }
+  const guides = []
+  if (bx) guides.push({ axis: 'x', at: bx.at })
+  if (by) guides.push({ axis: 'y', at: by.at })
+  return { x: px + (bx?.d ?? 0), y: py + (by?.d ?? 0), guides }
+}

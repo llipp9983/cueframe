@@ -25,6 +25,7 @@ export const useStore = create((set, get) => ({
   missing: {}, // layerId -> true
   chatBuffer: [],
   update: { state: 'none' },
+  outputOpen: false,
   updateHidden: false,
   sampleChat: false,
   guideSnap: true, // 끌 때 가장자리·중앙·다른 요소에 붙이기

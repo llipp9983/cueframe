@@ -4,6 +4,7 @@ const unsub = () => () => {}
 
 const stub = {
   isElectron: false,
+  pathForFile: () => '',
   appInfo: async () => ({ version: '1.0.0', platform: 'browser', electron: '-', chrome: '-', logs: '-' }),
   closeNow: noop,
   pickMedia: async () => [],

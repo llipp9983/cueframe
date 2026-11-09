@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
-import { newProject, openProject, saveProject, showObsGuide, showAbout } from './actions.js'
+import { newProject, openProject, saveProject, showObsGuide, showAbout, duplicateSelected, selectAll, flipSelected, deleteSelected } from './actions.js'
 import { inform } from '../dialogs/dialogStore.js'
 import { fileNameOf } from '../../core/layer.js'
 
@@ -71,6 +71,11 @@ export default function MenuBar() {
       <Menu id="edit" open={open} setOpen={setOpen} label="편집" mnemonic="E" items={[
         { label: '되돌리기', kbd: 'Ctrl+Z', disabled: !canUndo, run: undo },
         { label: '다시 실행', kbd: 'Ctrl+Y', disabled: !canRedo, run: redo },
+        '-',
+        { label: '복제', kbd: 'Ctrl+D', run: duplicateSelected },
+        { label: '모두 선택', kbd: 'Ctrl+A', run: selectAll },
+        { label: '좌우 반전', kbd: 'Ctrl+H', run: flipSelected },
+        { label: '삭제', kbd: 'Delete', run: deleteSelected },
       ]} />
       <Menu id="help" open={open} setOpen={setOpen} label="도움말" mnemonic="H" items={[
         { label: 'OBS 설정 안내', run: showObsGuide },

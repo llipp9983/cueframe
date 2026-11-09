@@ -113,7 +113,7 @@ export function propBottom(prop, analysis) {
 
 /** 소품의 바닥을 윗면에 맞춘 y. */
 export function placeOnSurface(prop, sy, analysis) {
-  return { ...prop, y: sy - (analysis?.base ?? 1) * prop.height }
+  return { ...prop, y: Math.round(sy - (analysis?.base ?? 1) * prop.height) }
 }
 
 /** 끌기를 놓을 때: 회전하지 않은 소품 중 바닥이 윗면에서 60 이내이면 붙인다. */
