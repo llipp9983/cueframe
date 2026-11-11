@@ -4,6 +4,7 @@ import { Stage, Fit } from '../scene/SceneView.jsx'
 import { corners, handlePoints, hitHandle, hitLayer, resizeLayer, rotationFromPointer, HANDLE_SIZE, center } from '../../core/geometry.js'
 import { referenceTable, surfaceY, snapProps } from '../../core/scene.js'
 import { clamp } from '../../core/layer.js'
+import { showTemplates } from '../dialogs/dialogStore.js'
 import { dropFiles, addBackground, addProps, addChat, addText } from './actions.js'
 import { boxOf, unionBox, snapMove, snapPoint } from '../../core/align.js'
 
@@ -196,6 +197,7 @@ function EmptyHint() {
           <button onClick={addProps}>소품 추가</button>
           <button onClick={addChat}>채팅창 추가</button>
           <button onClick={() => addText('text')}>문구 추가</button>
+          <button onClick={showTemplates}>템플릿으로 시작</button>
         </div>
       </div>
     </div>

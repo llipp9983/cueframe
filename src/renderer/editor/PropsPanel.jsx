@@ -4,6 +4,8 @@ import { Num, SliderRow, CheckRow } from './fields.jsx'
 import ChatPanel from './ChatPanel.jsx'
 import TextPanel from './TextPanel.jsx'
 import WidgetPanel from './WidgetPanel.jsx'
+import ParticlesPanel from './ParticlesPanel.jsx'
+import { ColorRow } from './fields.jsx'
 import Collapse from './Collapse.jsx'
 import { relink, snapOn, placeSelectedOnTable, startRename } from './actions.js'
 import { KIND_LABEL } from '../../core/layer.js'
@@ -18,9 +20,13 @@ function EffectsSection({ layer }) {
   return (
     <Collapse id="fx" title="효과" defaultOpen={false}>
       {!bg && <SliderRow label="그림자" value={fx.shadow} min={0} max={1} step={0.01} onChange={set('shadow')} fmt={(v) => `${Math.round(v * 100)}%`} />}
+      {!bg && <SliderRow label="빛나기" value={fx.glow} min={0} max={1} step={0.01} onChange={set('glow')} fmt={(v) => `${Math.round(v * 100)}%`} />}
+      {!bg && fx.glow > 0 && <ColorRow label="빛 색" value={fx.glowColor} onChange={set('glowColor')} />}
       {!bg && <SliderRow label="둥실둥실(높이)" value={fx.float} min={0} max={80} onChange={set('float')} fmt={(v) => `${Math.round(v)}px`} />}
       {!bg && <SliderRow label="흔들림(각도)" value={fx.sway} min={0} max={20} step={0.5} onChange={set('sway')} fmt={(v) => `${v}°`} />}
-      {!bg && (fx.float > 0 || fx.sway > 0) && <SliderRow label="움직임 속도(초)" value={fx.floatSpeed} min={1} max={12} step={0.5} onChange={set('floatSpeed')} fmt={(v) => `${v}s`} />}
+      {!bg && <SliderRow label="숨쉬기(깜빡임)" value={fx.pulse} min={0} max={1} step={0.01} onChange={set('pulse')} fmt={(v) => `${Math.round(v * 100)}%`} />}
+      {!bg && <SliderRow label="천천히 돌기" value={fx.spin} min={0} max={90} onChange={set('spin')} fmt={(v) => `${Math.round(v)}°/초`} />}
+      {!bg && (fx.float > 0 || fx.sway > 0 || fx.pulse > 0) && <SliderRow label="움직임 주기(초)" value={fx.floatSpeed} min={1} max={12} step={0.5} onChange={set('floatSpeed')} fmt={(v) => `${v}s`} />}
       <SliderRow label="흐리게" value={fx.blur} min={0} max={40} onChange={set('blur')} fmt={(v) => `${Math.round(v)}px`} />
       <SliderRow label="어둡게" value={fx.dim} min={0} max={0.9} step={0.01} onChange={set('dim')} fmt={(v) => `${Math.round(v * 100)}%`} />
       <button disabled={!any} style={{ marginTop: 4 }} onClick={() => patchLayer(layer.id, { fx: null })}>효과 모두 끄기</button>
@@ -97,6 +103,7 @@ export default function PropsPanel() {
       )}
 
       {missing[l.id] && <button style={{ marginTop: 10 }} onClick={() => relink(l.id)}>파일 다시 연결...</button>}
+      {l.kind === 'Particles' && l.particles && <ParticlesPanel layer={l} />}
       {l.kind === 'Text' && l.text && <TextPanel layer={l} />}
       {l.kind === 'Widget' && <WidgetPanel layer={l} />}
     </>

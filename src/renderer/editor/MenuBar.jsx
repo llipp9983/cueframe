@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
 import { newProject, openProject, saveProject, showObsGuide, showAbout, duplicateSelected, selectAll, flipSelected, deleteSelected } from './actions.js'
-import { inform } from '../dialogs/dialogStore.js'
+import { inform, showTemplates, showStartGuide } from '../dialogs/dialogStore.js'
 import { fileNameOf } from '../../core/layer.js'
 
 function Menu({ label, mnemonic, items, open, setOpen, id }) {
@@ -60,6 +60,7 @@ export default function MenuBar() {
       <img src="./logo.webp" alt="CUEFRAME" style={{ height: 20, marginRight: 8, borderRadius: 3 }} />
       <Menu id="file" open={open} setOpen={setOpen} label="파일" mnemonic="F" items={[
         { label: '새 프로젝트', kbd: 'Ctrl+N', run: newProject },
+        { label: '템플릿으로 새 프로젝트...', run: showTemplates },
         { label: '열기...', kbd: 'Ctrl+O', run: () => openProject() },
         { label: '저장', kbd: 'Ctrl+S', run: () => saveProject(false) },
         { label: '다른 이름으로 저장...', kbd: 'Ctrl+Shift+S', run: () => saveProject(true) },
@@ -78,6 +79,7 @@ export default function MenuBar() {
         { label: '삭제', kbd: 'Delete', run: deleteSelected },
       ]} />
       <Menu id="help" open={open} setOpen={setOpen} label="도움말" mnemonic="H" items={[
+        { label: '시작하기 안내', run: showStartGuide },
         { label: 'OBS 설정 안내', run: showObsGuide },
         { label: '업데이트 확인', run: async () => { const u = await api.update.check(); if (!u || u.state === 'none') inform('지금 쓰는 버전이 최신이거나, 업데이트를 확인하지 못했습니다.') } },
         { label: '로그 내보내기...', run: () => api.exportLog() },

@@ -1,5 +1,6 @@
 import { memo, useEffect, useState } from 'react'
-import { textLines } from '../../core/timer.js'
+import { textParts } from '../../core/timer.js'
+import { fontStack } from '../../core/fonts.js'
 
 /** 초 단위로 갱신되는 현재 시각. 시계·카운트다운에서만 켠다. */
 function useNow(active) {
@@ -16,7 +17,7 @@ function useNow(active) {
 function TextLayer({ style: s }) {
   const live = s.mode !== 'text'
   const now = useNow(live)
-  const lines = textLines(s, now)
+  const lines = textParts(s, now)
   const shadow = s.shadow ? `0 ${Math.max(2, s.fontSize * 0.04)}px ${Math.max(4, s.fontSize * 0.1)}px ${s.shadowColor}` : undefined
   return (
     <div
@@ -30,7 +31,7 @@ function TextLayer({ style: s }) {
         textAlign: s.align,
         overflow: 'hidden',
         color: s.color,
-        fontFamily: 'Pretendard, "Malgun Gothic", sans-serif',
+        fontFamily: fontStack(s.fontFamily),
         fontSize: s.fontSize,
         fontWeight: s.bold ? 700 : 400,
         fontStyle: s.italic ? 'italic' : 'normal',
@@ -45,7 +46,7 @@ function TextLayer({ style: s }) {
       }}
     >
       {lines.map((ln, i) => (
-        <div key={i}>{ln || ' '}</div>
+        <div key={i} style={ln.sub ? { fontSize: s.fontSize * s.subScale } : undefined}>{ln.text || ' '}</div>
       ))}
     </div>
   )

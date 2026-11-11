@@ -4,6 +4,7 @@ import { MAX_LAYERS, normalizeLayer, newId } from './layer.js'
 import { normalizeChatStyle } from './chatStyle.js'
 import { normalizeTextStyle } from './textStyle.js'
 import { normalizeFx } from './fx.js'
+import { normalizeParticles } from './particles.js'
 import { clamp, num } from './util.js'
 
 export const PROJECT_VERSION = 1
@@ -135,6 +136,7 @@ export function serializeLayer(l) {
     surfaceLineY: l.surfaceLineY,
     chat: l.kind === 'Chat' ? normalizeChatStyle(l.chat) : null,
     text: l.kind === 'Text' ? normalizeTextStyle(l.text) : undefined,
+    particles: l.kind === 'Particles' ? normalizeParticles(l.particles) : undefined,
     fx: l.fx ? normalizeFx(l.fx) : undefined,
     flipX: l.flipX,
   }

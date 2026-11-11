@@ -35,6 +35,7 @@ export function defaultChatStyle() {
     stitch: false,
     stitchColor: '#FFFFFF',
     // 메시지
+    fontFamily: '',
     fontSize: 26,
     textColor: '#E8EAED',
     lineHeight: 1.3,
@@ -118,6 +119,7 @@ export function normalizeChatStyle(raw) {
     patternOpacity: clamp(num(r.patternOpacity, d.patternOpacity), 0, 1),
     stitch: bool(r.stitch, d.stitch),
     stitchColor: hex(r.stitchColor, d.stitchColor),
+    fontFamily: str(r.fontFamily, 80, ''),
     fontSize: clamp(num(r.fontSize, d.fontSize), 10, 80),
     textColor: hex(r.textColor, d.textColor),
     lineHeight: clamp(num(r.lineHeight, d.lineHeight), 1, 3),

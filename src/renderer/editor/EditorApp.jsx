@@ -14,6 +14,7 @@ import { mediaUrl, loadImageInfo, loadVideoInfo } from '../scene/media.js'
 import { isVideoPath } from '../../core/layer.js'
 import * as actions from './actions.js'
 import SceneBar from './SceneBar.jsx'
+import { showStartGuide } from '../dialogs/dialogStore.js'
 import { newProject, openProject, saveProject, confirmDiscard, offerRecovery, writeAutosaveIfDirty, clearAutosave, startRename, deleteSelected, nudgeSelected, duplicateSelected, flipSelected, alignSelected, selectAll, setOpacitySelected, refreshRecent, loadUserPresets } from './actions.js'
 
 if (import.meta.env.DEV) window.__actions = actions // 개발 중 점검용
@@ -47,6 +48,11 @@ export default function EditorApp() {
     ;(async () => {
       if (await offerRecovery()) return
       const st = await api.getSettings()
+      // 처음 쓰는 분에게만 한 번 시작하기 안내를 보여 준다(이미 쓰던 프로젝트가 있으면 보여 주지 않는다)
+      if (!st.lastProject && !localStorage.getItem('cueframe.seenStart')) {
+        localStorage.setItem('cueframe.seenStart', '1')
+        setTimeout(() => showStartGuide(), 800)
+      }
       if (st.lastProject) {
         const res = await api.openProject(st.lastProject)
         if (res?.project) {

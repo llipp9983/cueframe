@@ -57,7 +57,7 @@ export function hitTest(l, px, py) {
 export function hitLayer(layers, px, py) {
   for (let i = layers.length - 1; i >= 0; i--) {
     const l = layers[i]
-    if (l.visible && !l.locked && hitTest(l, px, py)) return l
+    if (l.visible && !l.locked && l.kind !== 'Particles' && hitTest(l, px, py)) return l
   }
   return null
 }

@@ -1,0 +1,57 @@
+/* scripts/gen-fonts-css.mjs 로 만든 파일 — 직접 고치지 마세요 */
+@font-face {
+  font-family: 'Jua';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/jua/files/jua-korean-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Jua';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/jua/files/jua-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Black Han Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/black-han-sans/files/black-han-sans-korean-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Black Han Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/black-han-sans/files/black-han-sans-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Do Hyeon';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/do-hyeon/files/do-hyeon-korean-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Do Hyeon';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/do-hyeon/files/do-hyeon-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Gowun Dodum';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/gowun-dodum/files/gowun-dodum-korean-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Gowun Dodum';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/gowun-dodum/files/gowun-dodum-latin-400-normal.woff2') format('woff2');
+}

@@ -8,6 +8,8 @@ const stub = {
   appInfo: async () => ({ version: '1.0.0', platform: 'browser', electron: '-', chrome: '-', logs: '-' }),
   closeNow: noop,
   openExternal: noop,
+  templatesDir: async () => '',
+  listFonts: async () => ['Arial', 'Malgun Gothic', 'Segoe UI'],
   pickMedia: async () => [],
   message: async () => 0,
   openProject: async () => ({ canceled: true }),

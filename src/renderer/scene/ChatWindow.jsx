@@ -2,6 +2,8 @@ import { memo, useEffect, useState } from 'react'
 import { SHAPE_PATHS } from '../../core/shapes.js'
 import { visibleMessages } from '../../core/chat.js'
 import { defaultChatStyle } from '../../core/chatStyle.js'
+import { splitEmoji } from '../../core/emoji.js'
+import { fontStack } from '../../core/fonts.js'
 import { mediaUrl } from './media.js'
 
 const hexA = (hex, a) => {
@@ -74,7 +76,15 @@ const Message = memo(function Message({ m, s }) {
         {streamer && s.crown && <Shape shape="crown" color="#FFD04A" size={s.nickSize * 0.9} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
         <span style={{ color: nickColor, fontSize: s.nickSize, fontWeight: s.nickBold ? 700 : 400 }}>{m.nick}</span>
         {s.nickNewLine ? <br /> : '  '}
-        <span>{m.text}</span>
+        <span>
+          {splitEmoji(m.text, m.emojis).map((part, i) =>
+            part.type === 'emoji' ? (
+              <img key={i} src={part.url} alt="" draggable={false} referrerPolicy="no-referrer" style={{ height: '1.35em', width: 'auto', verticalAlign: 'middle', margin: '0 1px' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+            ) : (
+              part.value
+            ),
+          )}
+        </span>
       </div>
     </div>
   )
@@ -105,7 +115,7 @@ function ChatWindow({ style, messages, projectDir, width, height }) {
         overflow: 'hidden',
         background: `linear-gradient(180deg, ${hexA(s.bgColor, s.bgOpacity)}, ${hexA(s.bgColor2, s.bgOpacity)})`,
         boxShadow: s.borderWidth ? `inset 0 0 0 ${s.borderWidth}px ${s.borderColor}` : undefined,
-        fontFamily: 'Pretendard, "Malgun Gothic", sans-serif',
+        fontFamily: fontStack(s.fontFamily),
       }}
     >
       <Pattern s={s} />

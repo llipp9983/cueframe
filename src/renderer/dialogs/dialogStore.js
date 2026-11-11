@@ -36,4 +36,6 @@ export const inform = (message, { title = 'CUEFRAME', warn = false } = {}) =>
 export const promptName = (props) => open('prompt', props)
 export const showText = (props) => open('text', props)
 export const showConnect = () => open('connect', {})
-export const showGuide = () => open('guide', {})
+export const showGuide = () => open('guide', { kind: 'chzzk' })
+export const showStartGuide = () => open('guide', { kind: 'start' })
+export const showTemplates = () => open('templates', {})

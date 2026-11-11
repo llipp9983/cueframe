@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('api', {
   appInfo: invoke('app:info'),
   closeNow: invoke('app:closeNow'),
   openExternal: invoke('app:openExternal'),
+  listFonts: invoke('fonts:list'),
+  templatesDir: invoke('templates:dir'),
   pickMedia: invoke('dialog:pickMedia'),
   message: invoke('dialog:message'),
   openProject: invoke('project:open'),

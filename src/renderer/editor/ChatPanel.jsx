@@ -4,6 +4,7 @@ import { api } from '../api.js'
 import { BUILTIN_PRESETS, PRESET_GROUPS } from '../../core/presets.js'
 import { normalizeChatStyle, PATTERNS, PATTERN_LABEL, SHAPES, SHAPE_LABEL, MAX_IMAGE_ORNAMENTS, MAX_SHAPE_ORNAMENTS } from '../../core/chatStyle.js'
 import Collapse from './Collapse.jsx'
+import FontSelect from './FontSelect.jsx'
 import { Row, SliderRow, ColorRow, CheckRow, SelectRow, TextRow, Num } from './fields.jsx'
 import { saveUserPreset, deleteUserPreset, exportPresets, importPresets } from './actions.js'
 import { mediaUrl, loadImageInfo } from '../scene/media.js'
@@ -99,6 +100,7 @@ export default function ChatPanel({ layer }) {
 
       </Collapse>
 <Collapse id="chat-msg" title="메시지" defaultOpen={false}>
+      <FontSelect value={s.fontFamily} onChange={set('fontFamily')} />
       {sl('글자 크기', 'fontSize', 10, 80)}
       {co('글자색', 'textColor')}
       {sl('줄 간격', 'lineHeight', 1, 3, 0.05)}

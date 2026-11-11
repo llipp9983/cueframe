@@ -3,6 +3,7 @@ import { CANVAS_W, CANVAS_H, isVideoPath } from '../../core/layer.js'
 import { fxFilter, hasFx } from '../../core/fx.js'
 import ChatWindow from './ChatWindow.jsx'
 import TextLayer from './TextLayer.jsx'
+import ParticlesLayer from './ParticlesLayer.jsx'
 import { mediaUrl } from './media.js'
 
 function Media({ layer, url, onError, onOk }) {
@@ -43,6 +44,16 @@ function Fx({ fx, bg, children }) {
   node = (
     <div style={{ width: '100%', height: '100%', filter, transform: bg && fx.blur > 0 ? 'scale(1.06)' : undefined }}>{node}</div>
   )
+  if (fx.pulse > 0) {
+    node = (
+      <div style={{ width: '100%', height: '100%', animation: `cf-pulse ${fx.floatSpeed}s ease-in-out infinite`, '--lo': (1 - fx.pulse * 0.8).toFixed(2) }}>{node}</div>
+    )
+  }
+  if (fx.spin > 0) {
+    node = (
+      <div style={{ width: '100%', height: '100%', animation: `cf-spin ${(360 / fx.spin).toFixed(2)}s linear infinite`, willChange: 'transform' }}>{node}</div>
+    )
+  }
   if (fx.sway > 0) {
     node = (
       <div style={{ width: '100%', height: '100%', transformOrigin: '50% 100%', animation: `cf-sway ${(fx.floatSpeed * 1.3).toFixed(2)}s ease-in-out infinite`, '--deg': fx.sway, willChange: 'transform' }}>{node}</div>
@@ -65,6 +76,7 @@ const LayerNode = memo(function LayerNode({ layer: l, projectDir, chat, missing,
   let inner
   if (l.kind === 'Chat') inner = <ChatWindow style={l.chat} messages={chat} projectDir={projectDir} />
   else if (l.kind === 'Text') inner = <TextLayer style={l.text} />
+  else if (l.kind === 'Particles') inner = <ParticlesLayer style={l.particles} height={l.height} seed={l.id.length + l.id.charCodeAt(0)} />
   else if (l.kind === 'Widget') inner = <WidgetBox layer={l} live={widgetLive} url={widgetUrl} />
   else if (!url || missing) inner = <Placeholder layer={l} />
   else inner = <Media layer={l} url={url} onError={() => onMedia?.(l, false)} onOk={() => onMedia?.(l, true)} />

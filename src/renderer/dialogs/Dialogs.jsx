@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useDialogs } from './dialogStore.js'
 import { Shell } from './Shell.jsx'
 import ConnectDialog from './ConnectDialog.jsx'
-import { CHZZK_GUIDE_STEPS, CHZZK_GUIDE_TEXT } from './texts.js'
+import TemplatesDialog from './TemplatesDialog.jsx'
+import { CHZZK_GUIDE_STEPS, START_GUIDE_STEPS } from './texts.js'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
 
@@ -49,28 +50,46 @@ function TextDialog({ d }) {
 
 function GuideDialog({ d }) {
   const close = useDialogs((s) => s.close)
+  const kind = d.props.kind ?? 'chzzk'
+  const steps = kind === 'start' ? START_GUIDE_STEPS : CHZZK_GUIDE_STEPS
+  const title = kind === 'start' ? '시작하기 안내' : '치지직 연결 방법 (그림)'
   const [i, setI] = useState(0)
-  const step = CHZZK_GUIDE_STEPS[i]
+  const [zoom, setZoom] = useState(null)
+  const step = steps[i]
+  const imgs = step.images ?? []
   return (
-    <Shell id={d.id} title="치지직 연결 방법 (그림)" width={600} cancelValue={true}
+    <Shell id={d.id} title={title} width={640} cancelValue={true}
       foot={<>
         <button disabled={i === 0} onClick={() => setI(i - 1)}>← 이전</button>
-        <button disabled={i === CHZZK_GUIDE_STEPS.length - 1} onClick={() => setI(i + 1)}>다음 →</button>
+        <button disabled={i === steps.length - 1} onClick={() => setI(i + 1)}>다음 →</button>
         <button className="accent" onClick={() => close(d.id, true)}>닫기</button>
       </>}>
-      <div className="body" style={{ whiteSpace: 'normal', minHeight: 330 }}>
-        <div className="muted">{i + 1} / {CHZZK_GUIDE_STEPS.length}</div>
+      <div className="body" style={{ whiteSpace: 'normal', minHeight: 360 }}>
+        <div className="muted">{i + 1} / {steps.length}</div>
         <div style={{ fontWeight: 600, fontSize: 15, margin: '4px 0 10px' }}>{step.title}</div>
-        <div style={{ height: 150, borderRadius: 6, background: 'var(--bg0)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center' }}>
-          <svg width="320" height="120" viewBox="0 0 320 120" fill="none" stroke="var(--accent)" strokeWidth="2" aria-hidden="true">
-            <rect x="10" y="10" width="300" height="100" rx="8" stroke="var(--border)" />
-            <circle cx="160" cy="48" r="22" />
-            <text x="160" y="56" textAnchor="middle" fill="var(--accent)" stroke="none" fontSize="24" fontWeight="700">{i + 1}</text>
-            <rect x="60" y="82" width="200" height="10" rx="5" stroke="var(--track)" />
-          </svg>
-        </div>
-        <div style={{ marginTop: 12, whiteSpace: 'pre-line', userSelect: 'text' }}>{step.body}</div>
+        {imgs.length > 0 ? (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: 'center', background: 'var(--bg0)', border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
+            {imgs.map((f) => (
+              <img key={f} src={`./guide/${f}`} alt={step.title} title="누르면 크게 보입니다" draggable={false} onClick={() => setZoom(f)}
+                style={{ flex: imgs.length > 1 ? '1 1 0' : undefined, minWidth: 0, maxWidth: '100%', maxHeight: imgs.length > 1 ? 200 : 280, objectFit: 'contain', borderRadius: 4, cursor: 'zoom-in' }} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ height: 96, borderRadius: 6, background: 'var(--bg0)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center' }}>
+            <svg width="220" height="70" viewBox="0 0 220 70" fill="none" stroke="var(--accent)" strokeWidth="2" aria-hidden="true">
+              <circle cx="110" cy="30" r="22" />
+              <text x="110" y="38" textAnchor="middle" fill="var(--accent)" stroke="none" fontSize="24" fontWeight="700">{i + 1}</text>
+              <rect x="40" y="58" width="140" height="6" rx="3" stroke="var(--track)" />
+            </svg>
+          </div>
+        )}
+        <div style={{ marginTop: 12, whiteSpace: 'pre-line', userSelect: 'text', lineHeight: 1.6 }}>{step.body}</div>
       </div>
+      {zoom && (
+        <div className="backdrop" style={{ zIndex: 200, cursor: 'zoom-out' }} onMouseDown={() => setZoom(null)}>
+          <img src={`./guide/${zoom}`} alt="" style={{ maxWidth: '92vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 12px 40px rgba(0,0,0,.6)' }} />
+        </div>
+      )}
     </Shell>
   )
 }
@@ -84,6 +103,7 @@ export default function Dialogs() {
       case 'text': return <TextDialog key={d.id} d={d} />
       case 'guide': return <GuideDialog key={d.id} d={d} />
       case 'connect': return <ConnectDialog key={d.id} d={d} />
+      case 'templates': return <TemplatesDialog key={d.id} d={d} />
       default: return null
     }
   })

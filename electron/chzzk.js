@@ -5,6 +5,7 @@ import { shell } from 'electron'
 import { createRequire } from 'node:module'
 import { secureRead, secureWrite, secureDelete, getSettings, setSettings } from './store.js'
 import { info, warn, error } from './log.js'
+import { cleanEmojis, replaceUnknownEmoji } from '../src/core/emoji.js'
 
 const require = createRequire(import.meta.url)
 const API = 'https://openapi.chzzk.naver.com'
@@ -315,15 +316,18 @@ function openSocket(url, token, my) {
   s.on('CHAT', (raw) => {
     const d = parse(raw)
     if (!d) return
-    const text = String(d.content ?? '')
+    const content = String(d.content ?? '')
       .replace(/[​-‏‪-‮⁦-⁩﻿]/g, '')
-      .replace(/\{:[^}]+:\}/g, '[이모티콘]')
-      .slice(0, 500)
+      .slice(0, 2000)
+    // 이모티콘: 안전한 네이버 이미지 주소만 남기고, 표에 없는 표식은 글자로 바꾼다
+    const emojis = cleanEmojis(d.emojis)
+    const text = replaceUnknownEmoji(content, emojis).slice(0, 500)
     const nick = String(d.profile?.nickname ?? '').slice(0, 40) || '익명'
     emit('chat:message', {
       id: `c${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       nick,
       text,
+      ...(Object.keys(emojis).length ? { emojis } : {}),
       streamer: d.userRoleCode === 'streamer' || d.profile?.userRoleCode === 'streamer',
       time: Date.now(),
     })

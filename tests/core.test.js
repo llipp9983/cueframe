@@ -350,3 +350,137 @@ describe('scenes in project file', () => {
     expect(parseProject(txt, { fromDisk: false }).project.layers[0].mediaPath).toBe('C:\\a.png')
   })
 })
+
+import { cleanEmojis, splitEmoji, replaceUnknownEmoji } from '../src/core/emoji.js'
+describe('chzzk emoticons', () => {
+  it('keeps only https naver image hosts', () => {
+    const out = cleanEmojis({
+      good: 'https://nng-phinf.pstatic.net/a/b.png',
+      cdn: 'https://ssl.pstatic.net/x.gif',
+      http: 'http://nng-phinf.pstatic.net/a.png',
+      evil: 'https://evil.example.com/a.png',
+      fake: 'https://pstatic.net.evil.com/a.png',
+      js: 'javascript:alert(1)',
+      'bad name!': 'https://ssl.pstatic.net/x.png',
+    })
+    expect(Object.keys(out).sort()).toEqual(['cdn', 'good'])
+    expect(cleanEmojis(null)).toEqual({})
+  })
+  it('limits the number of emoticons', () => {
+    const big = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`e${i}`, 'https://ssl.pstatic.net/x.png']))
+    expect(Object.keys(cleanEmojis(big)).length).toBe(30)
+  })
+  it('splits text around emoticons and falls back for unknown ones', () => {
+    const e = { smile: 'https://ssl.pstatic.net/s.png' }
+    expect(splitEmoji('안녕 {:smile:} 반가워 {:nope:}!', e)).toEqual([
+      { type: 'text', value: '안녕 ' },
+      { type: 'emoji', name: 'smile', url: e.smile },
+      { type: 'text', value: ' 반가워 ' },
+      { type: 'text', value: '[이모티콘]' },
+      { type: 'text', value: '!' },
+    ])
+    expect(splitEmoji('그냥 글', undefined)).toEqual([{ type: 'text', value: '그냥 글' }])
+    expect(replaceUnknownEmoji('a {:x:} b {:smile:}', e)).toBe('a [이모티콘] b {:smile:}')
+  })
+})
+
+import { fontStack, safeFontName, DEFAULT_FONT_STACK, BUNDLED_FONTS } from '../src/core/fonts.js'
+import { defaultParticles, normalizeParticles, particleSpecs } from '../src/core/particles.js'
+import { makeParticles } from '../src/core/scene.js'
+describe('fonts', () => {
+  it('builds a safe font stack', () => {
+    expect(fontStack('')).toBe(DEFAULT_FONT_STACK)
+    expect(fontStack('Jua')).toBe(`"Jua", ${DEFAULT_FONT_STACK}`)
+    expect(safeFontName('Evil"; } body { display:none')).not.toMatch(/["';{}]/)
+    expect(fontStack('a'.repeat(200)).length).toBeLessThan(160)
+    expect(BUNDLED_FONTS.length).toBe(4)
+  })
+  it('keeps font family in text and chat styles', () => {
+    expect(normalizeTextStyle({ fontFamily: 'Jua' }).fontFamily).toBe('Jua')
+    expect(normalizeTextStyle({}).fontFamily).toBe('')
+    expect(normalizeChatStyle({ fontFamily: 'Do Hyeon' }).fontFamily).toBe('Do Hyeon')
+  })
+})
+describe('particles and extra effects', () => {
+  it('normalizes particle settings', () => {
+    const p = normalizeParticles({ type: 'weird', count: 9999, size: 1, speed: 0, color: 'x' })
+    expect(p).toMatchObject({ type: 'snow', count: 150, size: 6, speed: 2 })
+    expect(normalizeParticles({ type: 'bubble' }).direction).toBe('up')
+    expect(defaultParticles('petal').color).toBe('#FFB7C9')
+  })
+  it('makes the same arrangement for the same settings', () => {
+    const p = defaultParticles('snow')
+    const a = particleSpecs(p, 7)
+    expect(a).toHaveLength(40)
+    expect(particleSpecs(p, 7)).toEqual(a)
+    expect(a.every((s) => s.delay <= 0 && s.left >= 0 && s.left <= 100)).toBe(true)
+  })
+  it('particle layers survive a project round trip, are not hit by clicks, sit below text', () => {
+    const l = makeParticles('star')
+    const prop = L('Prop'), text = makeText('text')
+    const s = insertLayer([prop, text], l)
+    expect(s.map((x) => x.kind)).toEqual(['Prop', 'Particles', 'Text'])
+    expect(hitLayer([l], 100, 100)).toBeNull()
+    const p = emptyProject('p'); p.scenes[0].layers = [l]
+    expect(parseProject(serializeProject(p)).project.scenes[0].layers[0].particles.type).toBe('star')
+  })
+  it('new effects clamp and show up in the filter', () => {
+    const f = normalizeFx({ glow: 3, pulse: -1, spin: 500, glowColor: 'red' })
+    expect(f).toMatchObject({ glow: 1, pulse: 0, spin: 90, glowColor: '#FFE98A' })
+    expect(fxFilter(f)).toContain('#FFE98A')
+    expect(hasFx(normalizeFx({ spin: 10 }))).toBe(true)
+  })
+})
+
+import fs from 'node:fs'
+import { TEMPLATES, buildTemplateProject, SURFACE_Y } from '../src/core/templates.js'
+describe('templates', () => {
+  it('has 6 templates with unique ids and all art files on disk', () => {
+    expect(TEMPLATES).toHaveLength(6)
+    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(6)
+    for (const t of TEMPLATES) {
+      for (const f of ['bg.jpg', 'table.png', 'thumb.jpg', ...t.props.map((p) => p.file)]) {
+        expect(fs.existsSync(`assets/templates/${t.id}/${f}`), `${t.id}/${f}`).toBe(true)
+      }
+    }
+  })
+  it('builds two scenes whose props stand on the table', () => {
+    for (const t of TEMPLATES) {
+      const p = buildTemplateProject(t, 'C:/res/templates', Date.parse('2026-01-01T00:00:00Z'))
+      expect(p.scenes.map((s) => s.name)).toEqual(['대기 중', '곧 시작'])
+      const wait = p.scenes[0].layers
+      expect(wait.map((l) => l.kind)).toEqual(expect.arrayContaining(['Background', 'Table', 'Prop', 'Particles', 'Text', 'Chat']))
+      for (const prop of wait.filter((l) => l.kind === 'Prop')) expect(prop.y + prop.height).toBe(SURFACE_Y)
+      expect(wait.find((l) => l.kind === 'Background').mediaPath).toBe(`C:/res/templates/${t.id}/bg.jpg`)
+      const cd = wait.find((l) => l.kind === 'Text' && l.text.mode === 'countdown')
+      expect(Date.parse(cd.text.targetAt)).toBe(Date.parse('2026-01-01T00:10:00Z'))
+      // 레이어 순서 규칙(배경 맨 아래, 채팅창은 위쪽)과 저장·읽기 왕복
+      expect(wait[0].kind).toBe('Background')
+      const back = parseProject(serializeProject(p)).project
+      expect(back.scenes).toHaveLength(2)
+      expect(back.scenes[0].layers.length).toBe(wait.length)
+    }
+  })
+  it('uses an existing chat preset and bundled font for every template', () => {
+    for (const t of TEMPLATES) {
+      expect(BUILTIN_PRESETS.some((p) => p.name === t.chatPreset), t.id).toBe(true)
+      expect(t.font === '' || BUNDLED_FONTS.some((f) => f.name === t.font), t.id).toBe(true)
+    }
+  })
+})
+
+import { textParts } from '../src/core/timer.js'
+describe('text parts (sub lines)', () => {
+  it('marks prefix/suffix as small and the value as big', () => {
+    const now = Date.parse('2026-01-01T00:00:00Z')
+    const c = { ...defaultTextStyle('countdown'), targetAt: new Date(now + 65_000).toISOString(), suffix: '남았어요' }
+    expect(textParts(c, now)).toEqual([{ text: '방송 시작까지', sub: true }, { text: '01:05', sub: false }, { text: '남았어요', sub: true }])
+    expect(textParts({ ...c, prefix: '', suffix: '' }, now)).toEqual([{ text: '01:05', sub: false }])
+    expect(textParts(c, now + 70_000)).toEqual([{ text: '방송이 곧 시작됩니다', sub: false }])
+    expect(textParts({ ...defaultTextStyle('text'), content: 'a\nb' })).toEqual([{ text: 'a', sub: false }, { text: 'b', sub: false }])
+  })
+  it('clamps subScale', () => {
+    expect(normalizeTextStyle({ subScale: 9 }).subScale).toBe(1)
+    expect(normalizeTextStyle({}).subScale).toBe(0.4)
+  })
+})

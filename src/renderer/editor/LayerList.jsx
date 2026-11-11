@@ -5,7 +5,7 @@ import Icon from '../theme/Icon.jsx'
 import { toggleVisible, toggleLock, moveSelected, duplicateSelected, deleteSelected, startRename, finishRename } from './actions.js'
 import { canDuplicate } from '../../core/scene.js'
 
-const TAG = { Background: ' [배경]  ', Table: ' [테이블]  ', Text: ' [문구]  ', Chat: ' [채팅]  ', Widget: ' [위젯]  ' }
+const TAG = { Background: ' [배경]  ', Table: ' [테이블]  ', Text: ' [문구]  ', Particles: ' [효과]  ', Chat: ' [채팅]  ', Widget: ' [위젯]  ' }
 
 export default function LayerList() {
   const layers = useStore((s) => s.layers)

@@ -47,3 +47,14 @@ export function textLines(style, now = Date.now()) {
   }
   return [style.prefix, value, style.suffix].filter((x) => x !== '')
 }
+
+/** 줄마다 작은 글자(윗·아랫줄 문구)인지 함께 돌려준다. */
+export function textParts(style, now = Date.now()) {
+  if (style.mode === 'text') return style.content.split(/\r?\n/).map((text) => ({ text, sub: false }))
+  const lines = textLines(style, now)
+  // 카운트다운이 끝나면 '끝난 뒤 문구'만 보이는데, 이건 큰 글자로 보인다
+  const ended = style.mode === 'countdown' && style.targetAt && Date.parse(style.targetAt) - now <= 0
+  if (ended) return lines.map((text) => ({ text, sub: false }))
+  const valueIndex = style.prefix !== '' ? 1 : 0
+  return lines.map((text, i) => ({ text, sub: i !== valueIndex }))
+}

@@ -309,6 +309,25 @@ function registerIpc() {
       .filter((p) => p.name && p.style && typeof p.style === 'object')
   })
 
+  // 템플릿 그림이 있는 폴더(설치된 앱에서는 resources 안, 개발 중에는 assets)
+  h('templates:dir', () => (app.isPackaged ? path.join(process.resourcesPath, 'templates') : path.join(__dirname, '..', 'assets', 'templates')))
+
+  // 이 PC에 설치된 글꼴(처음 한 번만 읽어 둔다)
+  let fontCache = null
+  h('fonts:list', async () => {
+    if (!fontCache) {
+      try {
+        const { getFonts } = await import('font-list')
+        const list = await getFonts({ disableQuoting: true })
+        fontCache = [...new Set(list.map((n) => String(n).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko'))
+      } catch (e) {
+        warn(`글꼴 목록을 읽지 못했습니다: ${e.message}`)
+        fontCache = []
+      }
+    }
+    return fontCache
+  })
+
   // 위젯 주소: 암호화 보관, 출력 창에만 내려준다
   h('widgets:get', (id) => store.getWidgets()[id] ?? '')
   h('widgets:set', (id, url) => {

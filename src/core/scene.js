@@ -1,11 +1,12 @@
 // 장면(레이어 배열) 조작. 모두 새 배열을 돌려주는 순수 함수. layers[0] = 맨 뒤.
 import { CANVAS_W, CANVAS_H, createLayer, newId, fileNameOf } from './layer.js'
 import { defaultTextStyle } from './textStyle.js'
+import { defaultParticles, PARTICLE_LABEL } from './particles.js'
 
 export const SNAP_DISTANCE = 60
 
 const isBackdrop = (l) => l.kind === 'Background' || l.kind === 'Table'
-const isTop = (l) => l.kind === 'Text' || l.kind === 'Chat' || l.kind === 'Widget'
+const isTop = (l) => l.kind === 'Particles' || l.kind === 'Text' || l.kind === 'Chat' || l.kind === 'Widget'
 
 /** 새 레이어를 규칙에 맞는 자리에 넣는다. 배경은 기존 배경을 교체한다. */
 export function insertLayer(layers, layer) {
@@ -24,6 +25,12 @@ export function insertLayer(layers, layer) {
     }
     case 'Prop': {
       const i = list.findIndex(isTop)
+      index = i < 0 ? list.length : i
+      break
+    }
+    case 'Particles': {
+      // 문구·채팅창·위젯 뒤에 둬서 글이 가려지지 않게 한다
+      const i = list.findIndex((l) => l.kind === 'Text' || l.kind === 'Chat' || l.kind === 'Widget')
       index = i < 0 ? list.length : i
       break
     }
@@ -103,6 +110,10 @@ export function makeText(mode = 'text') {
     keepAspect: false,
     text: style,
   })
+}
+
+export function makeParticles(type = 'snow') {
+  return createLayer('Particles', { name: PARTICLE_LABEL[type] ?? '분위기 효과', x: 0, y: 0, width: CANVAS_W, height: CANVAS_H, keepAspect: false, particles: defaultParticles(type) })
 }
 
 export function makeWidget(name = '치지직 위젯') {

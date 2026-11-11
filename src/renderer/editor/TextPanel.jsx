@@ -1,6 +1,7 @@
 import { useStore } from '../store.js'
 import { SliderRow, ColorRow, CheckRow, SelectRow, Row } from './fields.jsx'
 import Collapse from './Collapse.jsx'
+import FontSelect from './FontSelect.jsx'
 import { TEXT_MODES, TEXT_MODE_LABEL, COUNTDOWN_FORMATS, COUNTDOWN_FORMAT_LABEL, CLOCK_FORMATS, defaultTextStyle } from '../../core/textStyle.js'
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -59,12 +60,14 @@ export default function TextPanel({ layer }) {
         )}
       </Collapse>
       <Collapse id="text-look" title="글자 모양">
+        <FontSelect value={s.fontFamily} onChange={field('fontFamily')} />
         <SliderRow label="글자 크기" value={s.fontSize} min={8} max={400} onChange={field('fontSize')} />
         <ColorRow label="글자색" value={s.color} onChange={field('color')} />
         <CheckRow label="굵게" value={s.bold} onChange={field('bold')} />
         <CheckRow label="기울임" value={s.italic} onChange={field('italic')} />
         <SelectRow label="가로 정렬" value={s.align} options={[['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']]} onChange={field('align')} />
         <SelectRow label="세로 정렬" value={s.vAlign} options={[['top', '위'], ['middle', '가운데'], ['bottom', '아래']]} onChange={field('vAlign')} />
+        {s.mode !== 'text' && <SliderRow label="윗·아랫줄 크기" value={s.subScale} min={0.2} max={1} step={0.05} onChange={field('subScale')} fmt={(v) => `${Math.round(v * 100)}%`} />}
         <SliderRow label="줄 간격" value={s.lineHeight} min={0.8} max={3} step={0.05} onChange={field('lineHeight')} />
         <SliderRow label="글자 간격" value={s.letterSpacing} min={-10} max={60} onChange={field('letterSpacing')} />
         <CheckRow label="글자 그림자" value={s.shadow} onChange={field('shadow')} />

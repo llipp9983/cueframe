@@ -17,6 +17,8 @@ export function defaultTextStyle(mode = 'text') {
     targetAt: null, // ISO 문자열(카운트다운)
     format: 'auto',
     clockFormat: 'HH:mm:ss',
+    fontFamily: '',
+    subScale: 0.4, // 윗줄·아랫줄 문구는 큰 글자의 이 비율로
     fontSize: mode === 'text' ? 72 : 96,
     color: '#FFFFFF',
     bold: true,
@@ -47,6 +49,8 @@ export function normalizeTextStyle(raw) {
     targetAt,
     format: oneOf(r.format, COUNTDOWN_FORMATS, d.format),
     clockFormat: oneOf(r.clockFormat, CLOCK_FORMATS, d.clockFormat),
+    fontFamily: str(r.fontFamily, 80, ''),
+    subScale: clamp(num(r.subScale, d.subScale), 0.2, 1),
     fontSize: clamp(num(r.fontSize, d.fontSize), 8, 600),
     color: hex(r.color, d.color),
     bold: bool(r.bold, d.bold),

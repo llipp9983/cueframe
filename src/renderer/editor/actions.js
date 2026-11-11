@@ -5,12 +5,13 @@ import { parseProject, serializeProject } from '../../core/project.js'
 import { normalizeChatStyle } from '../../core/chatStyle.js'
 import { BUILTIN_PRESETS } from '../../core/presets.js'
 import {
-  insertLayer, hasKind, makeBackground, makeTable, makeProp, makeChat, makeText, makeWidget, referenceTable, surfaceY, placeOnSurface,
+  insertLayer, hasKind, makeBackground, makeTable, makeProp, makeChat, makeText, makeWidget, makeParticles, referenceTable, surfaceY, placeOnSurface,
   duplicateLayers, moveLayers, removeLayers, canDuplicate,
 } from '../../core/scene.js'
 import { hitTest } from '../../core/geometry.js'
 import { alignLayers, distributeLayers } from '../../core/align.js'
 import { mediaUrl, resolveMedia, loadImageInfo, loadVideoInfo, estimateGifMemory } from '../scene/media.js'
+import { buildTemplateProject } from '../../core/templates.js'
 import { ask, askSave, inform, promptName, showText } from '../dialogs/dialogStore.js'
 import { OBS_GUIDE, ABOUT_TEXT } from '../dialogs/texts.js'
 
@@ -397,4 +398,18 @@ export async function importPresets() {
   await api.savePresets(merged)
   st().set({ userPresets: merged })
   await inform(`프리셋 ${fresh.length}개를 가져왔습니다. 이름이 같은 것은 바뀌었습니다.`)
+}
+
+export function addParticles(type = 'snow') {
+  const layer = makeParticles(type)
+  st().commit(insertLayer(st().layers, layer), { selection: [layer.id] })
+}
+
+/** 템플릿으로 새 프로젝트를 만든다(지금 작업은 저장 여부를 먼저 묻는다). 그림은 저장할 때 프로젝트 폴더로 복사된다. */
+export async function applyTemplate(t) {
+  if (!(await confirmDiscard())) return
+  const dir = (await api.templatesDir()).split(String.fromCharCode(92)).join('/')
+  st().loadProject({ project: buildTemplateProject(t, dir), dir: null })
+  st().set({ dirty: true, notice: `'${t.name}' 템플릿으로 시작했습니다. 카운트다운 시각과 문구를 바꿔 보세요.` })
+  clearAutosave()
 }

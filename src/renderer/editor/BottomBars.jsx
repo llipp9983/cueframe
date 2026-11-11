@@ -2,7 +2,7 @@ import { useStore } from '../store.js'
 import { api } from '../api.js'
 import Icon from '../theme/Icon.jsx'
 import Pop, { PopItem } from './Pop.jsx'
-import { addBackground, addTable, addProps, addChat, addText, addWidget } from './actions.js'
+import { addBackground, addTable, addProps, addChat, addText, addWidget, addParticles } from './actions.js'
 import { showConnect } from '../dialogs/dialogStore.js'
 import { RESOLUTIONS } from '../../core/project.js'
 
@@ -66,12 +66,13 @@ export default function BottomBars() {
             <PopItem close={close} label="시계" hint="현재 시각" onClick={() => addText('clock')} />
             <PopItem close={close} label="카운트다운" hint="방송까지 남은 시간" onClick={() => addText('countdown')} />
             <div className="menu-sep" />
+            <PopItem close={close} label="분위기 효과" hint="눈·꽃잎·별 떨어짐" onClick={() => addParticles('snow')} />
             <PopItem close={close} label="치지직 위젯…" hint="후원 알림·영상 후원" onClick={addWidget} />
           </>
         )}
       </Pop>
 
-      <span style={{ flex: 1, minWidth: 8, color: 'var(--error)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }} role="status" title={notice}>{notice}</span>
+      <span style={{ flex: 1, minWidth: 8, color: /못했|실패|손상|오류/.test(notice) ? 'var(--error)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }} role="status" title={notice}>{notice}</span>
       {saving && (
         <>
           <progress max={saving.total || 1} value={saving.done} aria-label="저장 중" />
