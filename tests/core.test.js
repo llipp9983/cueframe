@@ -484,3 +484,35 @@ describe('text parts (sub lines)', () => {
     expect(normalizeTextStyle({}).subScale).toBe(0.4)
   })
 })
+
+import { ANCHORS } from '../src/core/chatStyle.js'
+describe('chat decorations stay tidy', () => {
+  it('defaults old shapes to the top-left anchor and rejects bad anchors', () => {
+    const s = normalizeChatStyle({ shapes: [{ shape: 'heart', x: 5, y: 6 }, { shape: 'star', anchor: 'nowhere' }, { shape: 'leaf', anchor: 'br' }] })
+    expect(s.shapes.map((x) => x.anchor)).toEqual(['tl', 'tl', 'br'])
+  })
+  it('every built-in preset keeps its decorations inside the title/footer bands at the corners', () => {
+    for (const p of BUILTIN_PRESETS) {
+      const s = p.style
+      for (const d of s.shapes) {
+        expect(ANCHORS, `${p.name}: anchor`).toContain(d.anchor)
+        const top = d.anchor.startsWith('t')
+        const band = top ? s.titleSize * 1.9 : s.footerSize * 2.2
+        const has = top ? !!s.title : !!s.footer
+        // 띠가 있으면 그 안에 완전히 들어가야 하고, 띠가 없는 쪽에는 두지 않는다
+        expect(has, `${p.name}: ${d.anchor} 쪽에 띠가 없음`).toBe(true)
+        expect(d.y, `${p.name}: 위치 y`).toBeGreaterThanOrEqual(0)
+        expect(d.y + d.size, `${p.name}: ${d.shape} 가 띠(${band.toFixed(0)}px)를 벗어남`).toBeLessThanOrEqual(band)
+        expect(d.x, `${p.name}: x`).toBeGreaterThanOrEqual(0)
+      }
+    }
+  })
+  it('streamer bubbles stay readable (not dark text on a dark bubble) in light presets', () => {
+    const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255 }
+    for (const p of BUILTIN_PRESETS) {
+      const s = p.style
+      if (!s.bubble) continue
+      expect(Math.abs(lum(s.streamerBubbleColor) - lum(s.textColor)), `${p.name}: 방송인 말풍선 대비`).toBeGreaterThan(0.3)
+    }
+  })
+})

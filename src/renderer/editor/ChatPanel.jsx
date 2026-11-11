@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
 import { BUILTIN_PRESETS, PRESET_GROUPS } from '../../core/presets.js'
-import { normalizeChatStyle, PATTERNS, PATTERN_LABEL, SHAPES, SHAPE_LABEL, MAX_IMAGE_ORNAMENTS, MAX_SHAPE_ORNAMENTS } from '../../core/chatStyle.js'
+import { normalizeChatStyle, ANCHORS, ANCHOR_LABEL, PATTERNS, PATTERN_LABEL, SHAPES, SHAPE_LABEL, MAX_IMAGE_ORNAMENTS, MAX_SHAPE_ORNAMENTS } from '../../core/chatStyle.js'
 import Collapse from './Collapse.jsx'
 import FontSelect from './FontSelect.jsx'
 import { Row, SliderRow, ColorRow, CheckRow, SelectRow, TextRow, Num } from './fields.jsx'
@@ -166,6 +166,9 @@ export default function ChatPanel({ layer }) {
             <button className="ghost" onClick={() => patchChat(layer.id, { shapes: s.shapes.filter((_, j) => j !== i) }, 'shapes')}>삭제</button>
           </div>
           <div className="row" style={{ flexWrap: 'wrap', gap: 4 }}>
+            <select aria-label="기준 위치" value={x.anchor ?? 'tl'} onChange={(e) => patchShape(i, { anchor: e.target.value })} title="도형이 붙는 모서리. 채팅창 크기를 바꿔도 이 모서리에 붙어 있습니다.">
+              {ANCHORS.map((a) => <option key={a} value={a}>{ANCHOR_LABEL[a]}</option>)}
+            </select>
             <span>X</span><Num value={x.x} width={58} onChange={(v) => patchShape(i, { x: v })} label="도형 X" />
             <span>Y</span><Num value={x.y} width={58} onChange={(v) => patchShape(i, { y: v })} label="도형 Y" />
             <span>크기</span><Num value={x.size} min={8} width={58} onChange={(v) => patchShape(i, { size: v })} label="도형 크기" />

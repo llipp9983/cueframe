@@ -7,6 +7,9 @@ export const PATTERNS = ['none', 'dots', 'stripes', 'grid', 'checks']
 export const PATTERN_LABEL = { none: '없음', dots: '물방울', stripes: '줄무늬', grid: '격자', checks: '체크' }
 export const SHAPES = ['heart', 'sparkle', 'star', 'ribbon', 'clover', 'leaf', 'crown', 'dot']
 export const SHAPE_LABEL = { heart: '하트', sparkle: '반짝이', star: '별', ribbon: '리본', clover: '클로버', leaf: '잎사귀', crown: '왕관', dot: '점' }
+// 도형 장식이 기준으로 삼는 자리: tl=왼쪽 위, tr=오른쪽 위, bl=왼쪽 아래, br=오른쪽 아래, tc=위 가운데, bc=아래 가운데
+export const ANCHORS = ['tl', 'tr', 'bl', 'br', 'tc', 'bc']
+export const ANCHOR_LABEL = { tl: '왼쪽 위', tr: '오른쪽 위', bl: '왼쪽 아래', br: '오른쪽 아래', tc: '위 가운데', bc: '아래 가운데' }
 export const MAX_IMAGE_ORNAMENTS = 10
 export const MAX_SHAPE_ORNAMENTS = 16
 
@@ -91,6 +94,7 @@ export function normalizeChatStyle(raw) {
     .slice(0, MAX_SHAPE_ORNAMENTS)
     .map((s) => ({
       shape: s.shape,
+      anchor: oneOf(s.anchor, ANCHORS, 'tl'), // 예전 프로젝트는 기준이 없으면 왼쪽 위(예전 방식 그대로)
       x: clamp(num(s.x), -200, 2000),
       y: clamp(num(s.y), -200, 2000),
       size: clamp(num(s.size, 40), 8, 400),

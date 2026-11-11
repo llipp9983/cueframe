@@ -19,6 +19,20 @@ export function Shape({ shape, color, size, rotation = 0, style }) {
   )
 }
 
+/** 도형 장식의 자리: 기준 모서리에서 x,y 만큼. 채팅창 크기를 바꿔도 모서리에 붙어 있다. */
+function anchorStyle(x) {
+  const a = x.anchor ?? 'tl'
+  const st = { position: 'absolute' }
+  if (a.endsWith('r')) st.right = x.x
+  else if (a.endsWith('c')) {
+    st.left = `calc(50% + ${x.x}px)`
+    st.marginLeft = -x.size / 2
+  } else st.left = x.x
+  if (a.startsWith('b')) st.bottom = x.y
+  else st.top = x.y
+  return st
+}
+
 function Pattern({ s }) {
   if (s.pattern === 'none') return null
   const c = hexA(s.patternColor, s.patternOpacity)
@@ -120,7 +134,7 @@ function ChatWindow({ style, messages, projectDir, width, height }) {
     >
       <Pattern s={s} />
       {s.shapes.filter((x) => !x.front).map((x, i) => (
-        <Shape key={'b' + i} shape={x.shape} color={x.color} size={x.size} rotation={x.rotation} style={{ position: 'absolute', left: x.x, top: x.y }} />
+        <Shape key={'b' + i} shape={x.shape} color={x.color} size={x.size} rotation={x.rotation} style={anchorStyle(x)} />
       ))}
       {s.title && (
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: titleH, background: s.titleBg, color: s.titleColor, fontSize: s.titleSize, fontWeight: 700, display: 'grid', placeItems: 'center', letterSpacing: 1 }}>
@@ -156,7 +170,7 @@ function ChatWindow({ style, messages, projectDir, width, height }) {
         return url ? <img key={i} src={url} alt="" draggable={false} style={{ position: 'absolute', left: im.x, top: im.y, width: im.width, height: im.height, opacity: im.opacity, objectFit: 'contain', transform: im.flipX ? 'scaleX(-1)' : undefined }} /> : null
       })}
       {s.shapes.filter((x) => x.front).map((x, i) => (
-        <Shape key={'f' + i} shape={x.shape} color={x.color} size={x.size} rotation={x.rotation} style={{ position: 'absolute', left: x.x, top: x.y }} />
+        <Shape key={'f' + i} shape={x.shape} color={x.color} size={x.size} rotation={x.rotation} style={anchorStyle(x)} />
       ))}
     </div>
   )
