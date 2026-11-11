@@ -516,3 +516,64 @@ describe('chat decorations stay tidy', () => {
     }
   })
 })
+
+import { parseVideoTarget, mapChatItem, recentOnly, pacificDay, pollDelay, hoursPerDay, explainApiError, MIN_POLL_MS } from '../src/core/youtube.js'
+describe('youtube chat helpers', () => {
+  it('parses video ids from many url forms', () => {
+    const id = 'dQw4w9WgXcQ'
+    for (const s of [id, `https://www.youtube.com/watch?v=${id}`, `youtube.com/watch?v=${id}&t=10s`, `https://youtu.be/${id}?si=abc`, `https://www.youtube.com/live/${id}`, `https://m.youtube.com/watch?v=${id}`, `https://www.youtube.com/embed/${id}`, `  ${id}  `]) {
+      expect(parseVideoTarget(s), s).toBe(id)
+    }
+    for (const s of ['', 'hello', 'https://example.com/watch?v=dQw4w9WgXcQ', 'https://www.youtube.com/watch?v=short', 'https://www.youtube.com/', null, undefined]) {
+      expect(parseVideoTarget(s), String(s)).toBeNull()
+    }
+  })
+  const base = (type, extra = {}) => ({ id: 'abc', snippet: { type, publishedAt: '2026-01-01T00:00:10Z', ...extra }, authorDetails: { displayName: '김방송', isChatOwner: false } })
+  it('maps text, super chat and membership events', () => {
+    const t = mapChatItem(base('textMessageEvent', { textMessageDetails: { messageText: '안녕하세요' } }))
+    expect(t).toMatchObject({ id: 'yabc', nick: '김방송', text: '안녕하세요', streamer: false, platform: 'youtube', time: Date.parse('2026-01-01T00:00:10Z') })
+    const owner = mapChatItem({ ...base('textMessageEvent', { textMessageDetails: { messageText: 'hi' } }), authorDetails: { displayName: '주인', isChatOwner: true } })
+    expect(owner.streamer).toBe(true)
+    expect(mapChatItem(base('superChatEvent', { superChatDetails: { amountDisplayString: '₩5,000', userComment: '화이팅' } })).text).toBe('[슈퍼챗 ₩5,000] 화이팅')
+    expect(mapChatItem(base('superStickerEvent', { superStickerDetails: { amountDisplayString: '$2.00' } })).text).toBe('[슈퍼스티커 $2.00]')
+    expect(mapChatItem(base('newSponsorEvent')).text).toContain('멤버십')
+    expect(mapChatItem(base('memberMilestoneChatEvent', { memberMilestoneChatDetails: { memberMonth: 6, userComment: '계속 함께' } })).text).toBe('멤버십 6개월 계속 함께')
+    expect(mapChatItem(base('membershipGiftingEvent', { membershipGiftingDetails: { giftMembershipsCount: 5 } })).text).toContain('5개')
+  })
+  it('ignores events with nothing to show and cleans text', () => {
+    for (const type of ['messageDeletedEvent', 'userBannedEvent', 'tombstone', 'chatEndedEvent', 'pollEvent']) expect(mapChatItem(base(type)), type).toBeNull()
+    expect(mapChatItem(null)).toBeNull()
+    expect(mapChatItem({ id: 'x', snippet: { type: 'textMessageEvent', textMessageDetails: { messageText: '' } } })).toBeNull()
+    const long = mapChatItem(base('textMessageEvent', { textMessageDetails: { messageText: 'a'.repeat(900) } }))
+    expect(long.text).toHaveLength(500)
+    const inv = mapChatItem({ ...base('textMessageEvent', { textMessageDetails: { messageText: 'a' + String.fromCharCode(0x202e) + 'b' } }), authorDetails: { displayName: '' } })
+    expect(inv.text).toBe('ab')
+    expect(inv.nick).toBe('익명')
+  })
+  it('keeps only recent messages from the first batch', () => {
+    const now = Date.parse('2026-01-01T01:00:00Z')
+    const msgs = Array.from({ length: 30 }, (_, i) => ({ id: i, time: now - (30 - i) * 1000 }))
+    expect(recentOnly(msgs, now)).toHaveLength(20)
+    expect(recentOnly([{ id: 1, time: now - 10 * 60 * 1000 }], now)).toHaveLength(0)
+  })
+  it('computes polling delay and usage', () => {
+    expect(pollDelay({ serverMs: 1000 })).toBe(MIN_POLL_MS)
+    expect(pollDelay({ serverMs: 8000 })).toBe(8000)
+    expect(pollDelay({ serverMs: 8000, upcoming: true })).toBe(15000)
+    expect(pollDelay({ serverMs: undefined, minMs: 10000 })).toBe(10000)
+    expect(hoursPerDay(5)).toBeCloseTo(2.78, 1)
+    expect(hoursPerDay(10)).toBeCloseTo(5.56, 1)
+  })
+  it('uses the pacific calendar day for quota resets', () => {
+    expect(pacificDay(Date.parse('2026-06-15T06:59:00Z'))).toBe('2026-06-14') // 태평양 여름시간 23:59
+    expect(pacificDay(Date.parse('2026-06-15T07:00:00Z'))).toBe('2026-06-15') // 자정
+  })
+  it('explains api errors', () => {
+    expect(explainApiError(403, { error: { errors: [{ reason: 'quotaExceeded' }] } }).code).toBe('quota')
+    expect(explainApiError(401, {}).code).toBe('auth')
+    expect(explainApiError(403, { error: { errors: [{ reason: 'liveChatEnded' }] } }).code).toBe('ended')
+    expect(explainApiError(403, { error: { errors: [{ reason: 'liveChatDisabled' }] } }).code).toBe('disabled')
+    expect(explainApiError(403, { error: { errors: [{ reason: 'accessNotConfigured' }] } }).code).toBe('forbidden')
+    expect(explainApiError(500, {}).retry).toBe(true)
+  })
+})

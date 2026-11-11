@@ -11,22 +11,34 @@ const DOT = { connected: 'var(--ok)', connecting: 'var(--warn)', retry: 'var(--w
 const chip = (ok) => ({ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '1px 10px', borderRadius: 12, fontSize: 12, border: '1px solid var(--border)', color: ok ? 'var(--text)' : 'var(--text-muted)', background: 'var(--bg2)', minHeight: 24, whiteSpace: 'nowrap' })
 const Dot = ({ color }) => <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flex: '0 0 auto' }} aria-hidden="true" />
 
-/** 채팅 상태를 한 단어로. 자세한 문구는 마우스를 올리면 보인다. */
-function chatLabel(chzzk, sample) {
+const isLive = (s) => s.state === 'connected'
+const isBusy = (s) => s.state === 'connecting' || s.state === 'retry'
+const ready = (s) => s.hasKey && s.loggedIn
+
+/** 채팅 상태를 한 단어로(치지직·YouTube 중 하나라도 연결되면 연결됨). 자세한 문구는 마우스를 올리면 보인다. */
+function chatLabel(chzzk, youtube, sample) {
   if (sample) return '샘플 채팅 중'
-  switch (chzzk.state) {
-    case 'connected': return '채팅 연결됨'
-    case 'connecting': return '채팅 연결 중…'
-    case 'retry': return '채팅 다시 연결 중…'
-    case 'needLogin': return chzzk.hasKey ? '채팅 로그인 필요' : '채팅 설정 필요'
-    case 'error': return '채팅 오류'
-    default: return chzzk.hasKey && chzzk.loggedIn ? '채팅 연결 안 됨' : '채팅 설정 필요'
-  }
+  const names = [isLive(chzzk) && '치지직', isLive(youtube) && 'YouTube'].filter(Boolean)
+  if (names.length) return `채팅 연결됨 (${names.join('·')})`
+  if (isBusy(chzzk) || isBusy(youtube)) return '채팅 연결 중…'
+  if (chzzk.state === 'error' || youtube.state === 'error') return '채팅 오류'
+  if (!chzzk.hasKey && !youtube.hasKey) return '채팅 설정 필요'
+  if ((chzzk.hasKey && !chzzk.loggedIn) || (youtube.hasKey && !youtube.loggedIn)) return '채팅 로그인 필요'
+  return ready(chzzk) || ready(youtube) ? '채팅 연결 안 됨' : '채팅 설정 필요'
+}
+const chatDot = (chzzk, youtube) => {
+  const all = [chzzk, youtube]
+  if (all.some(isLive)) return DOT.connected
+  if (all.some(isBusy)) return DOT.connecting
+  if (all.some((s) => s.state === 'error')) return DOT.error
+  if (all.some((s) => s.hasKey && !s.loggedIn)) return DOT.needLogin
+  return DOT.disconnected
 }
 
 export default function BottomBars() {
   const output = useStore((s) => s.output)
   const chzzk = useStore((s) => s.chzzk)
+  const youtube = useStore((s) => s.youtube)
   const saving = useStore((s) => s.saving)
   const notice = useStore((s) => s.notice)
   const outputOpen = useStore((s) => s.outputOpen)
@@ -43,11 +55,14 @@ export default function BottomBars() {
     api.outputConfig({ ...useStore.getState().output })
   }
   const toggleSample = async (on) => {
-    if (on && (chzzk.state === 'connected' || chzzk.state === 'connecting' || chzzk.state === 'retry')) await api.chzzk.disconnect()
+    if (on) {
+      if (isLive(chzzk) || isBusy(chzzk)) await api.chzzk.disconnect()
+      if (isLive(youtube) || isBusy(youtube)) await api.youtube.disconnect()
+    }
     set({ sampleChat: on })
   }
-  const label = chatLabel(chzzk, sampleChat)
-  const dot = sampleChat ? 'var(--accent)' : DOT[chzzk.state] ?? DOT.disconnected
+  const label = chatLabel(chzzk, youtube, sampleChat)
+  const dot = sampleChat ? 'var(--accent)' : chatDot(chzzk, youtube)
 
   return (
     <div className="row" style={{ minHeight: 34, flexWrap: 'wrap' }}>
@@ -85,7 +100,7 @@ export default function BottomBars() {
       )}
       <span style={chip(outputOpen)} title="방송 출력 창이 열려 있는지"><Dot color={outputOpen ? 'var(--ok)' : 'var(--text-disabled)'} />출력 창 {outputOpen ? '열림' : '닫힘'}</span>
 
-      <button className="ghost" style={{ ...chip(chzzk.state === 'connected' || sampleChat), cursor: 'pointer' }} title={`${sampleChat ? '샘플 채팅이 나오는 중입니다' : chzzk.text} — 눌러서 채팅 연결 설정`} onClick={showConnect}>
+      <button className="ghost" style={{ ...chip(isLive(chzzk) || isLive(youtube) || sampleChat), cursor: 'pointer' }} title={`${sampleChat ? '샘플 채팅이 나오는 중입니다' : `치지직: ${chzzk.text} / YouTube: ${youtube.text}`} — 눌러서 채팅 연결 설정`} onClick={showConnect}>
         <Dot color={dot} />{label}
       </button>
       <Pop label="⋯" ariaLabel="채팅 도구" title="샘플 채팅, 채팅 비우기" className="icon" minWidth={200} right>

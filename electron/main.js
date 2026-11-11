@@ -7,6 +7,7 @@ import { zipSync, strToU8 } from 'fflate'
 import { initLog, info, warn, error, logDir, redact } from './log.js'
 import * as store from './store.js'
 import * as chzzk from './chzzk.js'
+import * as youtube from './youtube.js'
 import { openProject, saveProject, isMedia } from './projectIO.js'
 import * as updater from './updater.js'
 import { fitOutputResize } from '../src/core/outputResize.js'
@@ -213,7 +214,9 @@ function registerIpc() {
     } catch {
       throw new Error('올바른 주소가 아닙니다.')
     }
-    if (u.protocol !== 'https:' || !/(^|.)chzzk.naver.com$/.test(u.hostname)) throw new Error('열 수 없는 주소입니다.')
+    const hn = u.hostname.toLowerCase()
+    const okHost = hn === 'chzzk.naver.com' || hn.endsWith('.chzzk.naver.com') || hn === 'console.cloud.google.com'
+    if (u.protocol !== 'https:' || !okHost) throw new Error('열 수 없는 주소입니다.')
     return shell.openExternal(u.toString())
   })
   h('app:closeNow', () => {
@@ -388,6 +391,17 @@ function registerIpc() {
   h('update:install', () => updater.install())
   h('update:dismiss', () => updater.dismiss())
 
+  // YouTube
+  h('youtube:status', () => youtube.getStatus())
+  h('youtube:saveKey', ({ clientId, clientSecret }) => youtube.saveAppKey(clientId, clientSecret))
+  h('youtube:clearKey', () => youtube.clearAppKey())
+  h('youtube:login', () => youtube.login())
+  h('youtube:cancelLogin', () => youtube.cancelLogin())
+  h('youtube:logout', () => youtube.logout())
+  h('youtube:connect', (target) => youtube.connect(target))
+  h('youtube:disconnect', () => youtube.disconnect())
+  h('youtube:setPollSeconds', (s) => youtube.setPollSeconds(s))
+
   // 로그
   h('log:openFolder', () => shell.openPath(logDir()))
   h('log:export', async () => {
@@ -445,10 +459,14 @@ app.whenReady().then(() => {
   chzzk.init((ch, data) => {
     send(editor, ch, data)
   })
+  youtube.init((ch, data) => {
+    send(editor, ch, data)
+  })
   updater.init((ch, data) => send(editor, ch, data), { beforeInstall: () => { forceClose = true } })
   registerIpc()
   createEditor()
   setTimeout(() => chzzk.autoConnectIfNeeded(), 1500)
+  setTimeout(() => youtube.autoConnectIfNeeded(), 2500)
 })
 
 app.on('window-all-closed', () => app.quit())

@@ -67,6 +67,18 @@ contextBridge.exposeInMainWorld('api', {
     connect: invoke('chzzk:connect'),
     disconnect: invoke('chzzk:disconnect'),
   },
+  youtube: {
+    status: invoke('youtube:status'),
+    saveKey: invoke('youtube:saveKey'),
+    clearKey: invoke('youtube:clearKey'),
+    login: invoke('youtube:login'),
+    cancelLogin: invoke('youtube:cancelLogin'),
+    logout: invoke('youtube:logout'),
+    connect: invoke('youtube:connect'),
+    disconnect: invoke('youtube:disconnect'),
+    setPollSeconds: invoke('youtube:setPollSeconds'),
+  },
+  onYoutubeStatus: on('youtube:status'),
   update: {
     state: invoke('update:state'),
     check: invoke('update:check'),

@@ -38,6 +38,7 @@ export const useStore = create((set, get) => ({
   guides: [], // 지금 보여 줄 스냅 가이드선
   diag: false,
   chzzk: { state: 'disconnected', text: '연결 안 됨', hasKey: false, hasUserKey: false, clientId: '', loggedIn: false, autoConnect: false },
+  youtube: { state: 'disconnected', text: '연결 안 됨', hasKey: false, hasUserKey: false, clientId: '', loggedIn: false, autoConnect: false, pollSeconds: 5, usage: { units: 0, quota: 10000, day: '' } },
   saving: null,
   notice: '',
   userPresets: [],

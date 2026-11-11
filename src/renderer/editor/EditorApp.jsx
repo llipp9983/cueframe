@@ -43,6 +43,7 @@ export default function EditorApp() {
     refreshRecent()
     loadUserPresets()
     api.chzzk.status().then((c) => s.set({ chzzk: c }))
+    api.youtube.status().then((y) => s.set({ youtube: y }))
     api.update.state().then((u) => s.set({ update: u }))
     api.outputIsOpen().then((o) => s.set({ outputOpen: !!o }))
     ;(async () => {
@@ -66,6 +67,7 @@ export default function EditorApp() {
       api.onOutputClosed(() => useStore.getState().set({ outputOpen: false })),
       api.onUpdateState((u) => useStore.getState().set({ update: u, updateHidden: false })),
       api.onChzzkStatus((c) => useStore.getState().set({ chzzk: c })),
+      api.onYoutubeStatus((y) => useStore.getState().set({ youtube: y })),
       api.onChatMessage((m) => useStore.getState().addChat(m)),
       api.onProgress((p) => useStore.getState().set({ saving: p })),
       api.onBeforeClose(async () => {
@@ -80,9 +82,10 @@ export default function EditorApp() {
 
   // 치지직이 연결되면 샘플 채팅은 끈다(동시에 켜지지 않는다)
   const chzzkState = useStore((s) => s.chzzk.state)
+  const youtubeState = useStore((s) => s.youtube.state)
   useEffect(() => {
-    if (chzzkState === 'connected') useStore.getState().set({ sampleChat: false })
-  }, [chzzkState])
+    if (chzzkState === 'connected' || youtubeState === 'connected') useStore.getState().set({ sampleChat: false })
+  }, [chzzkState, youtubeState])
 
   // 샘플 채팅
   const sample = useStore((s) => s.sampleChat)

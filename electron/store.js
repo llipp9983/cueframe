@@ -58,6 +58,9 @@ export function getSettings() {
     autoConnectChzzk: r.autoConnectChzzk === true,
     lastProject: typeof r.lastProject === 'string' ? r.lastProject : null,
     autoConnectAsked: r.autoConnectAsked === true,
+    autoConnectYoutube: r.autoConnectYoutube === true,
+    autoYoutubeAsked: r.autoYoutubeAsked === true,
+    youtubePollSeconds: Math.min(30, Math.max(5, Math.round(Number(r.youtubePollSeconds) || 5))),
     lastMediaDir: typeof r.lastMediaDir === 'string' ? r.lastMediaDir : null, // 소품·배경을 마지막으로 고른 폴더
   }
 }
