@@ -54,7 +54,7 @@ export async function saveProject(dir, project, { onProgress, cancelRef, recover
     ...s,
     layers: s.layers.map((l) => {
       const c = { ...l }
-      if (l.kind === 'Chat' && l.chat?.images) c.chat = { ...l.chat, images: l.chat.images.map((i) => ({ ...i })) }
+      if (l.kind === 'Chat' && l.chat) c.chat = { ...l.chat, images: (l.chat.images ?? []).map((i) => ({ ...i })) }
       return c
     }),
   }))
@@ -65,6 +65,7 @@ export async function saveProject(dir, project, { onProgress, cancelRef, recover
     for (const l of s.layers) {
       if (wants(l.mediaPath)) sources.add(l.mediaPath)
       for (const i of l.chat?.images ?? []) if (wants(i.src)) sources.add(i.src)
+      if (wants(l.chat?.bgImage)) sources.add(l.chat.bgImage)
     }
   }
   const total = sources.size
@@ -84,6 +85,7 @@ export async function saveProject(dir, project, { onProgress, cancelRef, recover
     for (const l of s.layers) {
       if (rel.has(l.mediaPath)) l.mediaPath = rel.get(l.mediaPath)
       for (const i of l.chat?.images ?? []) if (rel.has(i.src)) i.src = rel.get(i.src)
+      if (l.chat && rel.has(l.chat.bgImage)) l.chat.bgImage = rel.get(l.chat.bgImage)
     }
   }
 

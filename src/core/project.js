@@ -6,6 +6,7 @@ import { normalizeTextStyle } from './textStyle.js'
 import { normalizeFx } from './fx.js'
 import { normalizeParticles } from './particles.js'
 import { clamp, num } from './util.js'
+import { isTransition } from './transitions.js'
 
 export const PROJECT_VERSION = 1
 export const MAX_SCENES = 20
@@ -41,7 +42,7 @@ export function emptyProject(name = '제목 없음') {
 export function normalizeOutput(o) {
   const r = o && typeof o === 'object' ? o : {}
   const res = RESOLUTIONS.find((x) => x.width === r.width && x.height === r.height) ?? RESOLUTIONS[0]
-  return { width: res.width, height: res.height, fps: r.fps === 60 ? 60 : 30, transition: r.transition === 'cut' ? 'cut' : 'fade' }
+  return { width: res.width, height: res.height, fps: r.fps === 60 ? 60 : 30, transition: isTransition(r.transition) ? r.transition : 'fade' }
 }
 
 /** 레이어 배열 하나(장면 하나)를 정리한다. 배경·채팅창은 하나만, 같은 id는 새로 만든다. */

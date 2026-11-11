@@ -5,6 +5,7 @@ import Pop, { PopItem } from './Pop.jsx'
 import { addBackground, addTable, addProps, addChat, addText, addWidget, addParticles } from './actions.js'
 import { showConnect } from '../dialogs/dialogStore.js'
 import { RESOLUTIONS } from '../../core/project.js'
+import { TRANSITIONS } from '../../core/transitions.js'
 
 const DOT = { connected: 'var(--ok)', connecting: 'var(--warn)', retry: 'var(--warn)', error: 'var(--error)', needLogin: 'var(--error)', disconnected: 'var(--text-disabled)' }
 
@@ -15,23 +16,30 @@ const isLive = (s) => s.state === 'connected'
 const isBusy = (s) => s.state === 'connecting' || s.state === 'retry'
 const ready = (s) => s.hasKey && s.loggedIn
 
-/** 채팅 상태를 한 단어로(치지직·YouTube 중 하나라도 연결되면 연결됨). 자세한 문구는 마우스를 올리면 보인다. */
-function chatLabel(chzzk, youtube, sample) {
+/** 채팅 연결 목록. 키·로그인이 필요한 것(치지직·YouTube 공식)과 필요 없는 것(YouTube 간편·SOOP)을 함께 다룬다. */
+const platforms = (chzzk, youtube, ytweb, soop) => [
+  { name: '치지직', s: chzzk, keyed: true },
+  { name: 'YouTube', s: youtube, keyed: true },
+  { name: 'YouTube', s: ytweb, keyed: false },
+  { name: 'SOOP', s: soop, keyed: false },
+]
+
+/** 채팅 상태를 한 단어로. 자세한 문구는 마우스를 올리면 보인다. */
+function chatLabel(list, sample) {
   if (sample) return '샘플 채팅 중'
-  const names = [isLive(chzzk) && '치지직', isLive(youtube) && 'YouTube'].filter(Boolean)
+  const names = [...new Set(list.filter((p) => isLive(p.s)).map((p) => p.name))]
   if (names.length) return `채팅 연결됨 (${names.join('·')})`
-  if (isBusy(chzzk) || isBusy(youtube)) return '채팅 연결 중…'
-  if (chzzk.state === 'error' || youtube.state === 'error') return '채팅 오류'
-  if (!chzzk.hasKey && !youtube.hasKey) return '채팅 설정 필요'
-  if ((chzzk.hasKey && !chzzk.loggedIn) || (youtube.hasKey && !youtube.loggedIn)) return '채팅 로그인 필요'
-  return ready(chzzk) || ready(youtube) ? '채팅 연결 안 됨' : '채팅 설정 필요'
+  if (list.some((p) => isBusy(p.s))) return '채팅 연결 중…'
+  if (list.some((p) => p.s.state === 'error')) return '채팅 오류'
+  const keyed = list.filter((p) => p.keyed)
+  if (keyed.some((p) => p.s.hasKey && !p.s.loggedIn)) return '채팅 로그인 필요'
+  return keyed.some((p) => ready(p.s)) || list.some((p) => !p.keyed && p.s.target) ? '채팅 연결 안 됨' : '채팅 연결하기'
 }
-const chatDot = (chzzk, youtube) => {
-  const all = [chzzk, youtube]
-  if (all.some(isLive)) return DOT.connected
-  if (all.some(isBusy)) return DOT.connecting
-  if (all.some((s) => s.state === 'error')) return DOT.error
-  if (all.some((s) => s.hasKey && !s.loggedIn)) return DOT.needLogin
+const chatDot = (list) => {
+  if (list.some((p) => isLive(p.s))) return DOT.connected
+  if (list.some((p) => isBusy(p.s))) return DOT.connecting
+  if (list.some((p) => p.s.state === 'error')) return DOT.error
+  if (list.some((p) => p.keyed && p.s.hasKey && !p.s.loggedIn)) return DOT.needLogin
   return DOT.disconnected
 }
 
@@ -39,6 +47,8 @@ export default function BottomBars() {
   const output = useStore((s) => s.output)
   const chzzk = useStore((s) => s.chzzk)
   const youtube = useStore((s) => s.youtube)
+  const ytweb = useStore((s) => s.ytweb)
+  const soop = useStore((s) => s.soop)
   const saving = useStore((s) => s.saving)
   const notice = useStore((s) => s.notice)
   const outputOpen = useStore((s) => s.outputOpen)
@@ -58,11 +68,14 @@ export default function BottomBars() {
     if (on) {
       if (isLive(chzzk) || isBusy(chzzk)) await api.chzzk.disconnect()
       if (isLive(youtube) || isBusy(youtube)) await api.youtube.disconnect()
+      if (isLive(ytweb) || isBusy(ytweb)) await api.ytweb.disconnect()
+      if (isLive(soop) || isBusy(soop)) await api.soop.disconnect()
     }
     set({ sampleChat: on })
   }
-  const label = chatLabel(chzzk, youtube, sampleChat)
-  const dot = sampleChat ? 'var(--accent)' : chatDot(chzzk, youtube)
+  const list = platforms(chzzk, youtube, ytweb, soop)
+  const label = chatLabel(list, sampleChat)
+  const dot = sampleChat ? 'var(--accent)' : chatDot(list)
 
   return (
     <div className="row" style={{ minHeight: 34, flexWrap: 'wrap' }}>
@@ -100,7 +113,7 @@ export default function BottomBars() {
       )}
       <span style={chip(outputOpen)} title="방송 출력 창이 열려 있는지"><Dot color={outputOpen ? 'var(--ok)' : 'var(--text-disabled)'} />출력 창 {outputOpen ? '열림' : '닫힘'}</span>
 
-      <button className="ghost" style={{ ...chip(isLive(chzzk) || isLive(youtube) || sampleChat), cursor: 'pointer' }} title={`${sampleChat ? '샘플 채팅이 나오는 중입니다' : `치지직: ${chzzk.text} / YouTube: ${youtube.text}`} — 눌러서 채팅 연결 설정`} onClick={showConnect}>
+      <button className="ghost" style={{ ...chip(list.some((p) => isLive(p.s)) || sampleChat), cursor: 'pointer' }} title={`${sampleChat ? '샘플 채팅이 나오는 중입니다' : `치지직: ${chzzk.text} / YouTube: ${ytweb.state !== 'disconnected' ? ytweb.text : youtube.text} / SOOP: ${soop.text}`} — 눌러서 채팅 연결 설정`} onClick={showConnect}>
         <Dot color={dot} />{label}
       </button>
       <Pop label="⋯" ariaLabel="채팅 도구" title="샘플 채팅, 채팅 비우기" className="icon" minWidth={200} right>
@@ -128,8 +141,7 @@ export default function BottomBars() {
           </select>
           <label htmlFor="o-tr" title="방송에 나가는 장면이 바뀔 때의 전환">장면 전환</label>
           <select id="o-tr" value={output.transition ?? 'fade'} onChange={(e) => changeOutput({ transition: e.target.value })}>
-            <option value="fade">페이드</option>
-            <option value="cut">바로 바꾸기</option>
+            {TRANSITIONS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
           <span />
           <label className="check"><input type="checkbox" checked={diag} onChange={(e) => set({ diag: e.target.checked })} />진단 표시 (출력 창에 fps)</label>

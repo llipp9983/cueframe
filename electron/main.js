@@ -8,6 +8,8 @@ import { initLog, info, warn, error, logDir, redact } from './log.js'
 import * as store from './store.js'
 import * as chzzk from './chzzk.js'
 import * as youtube from './youtube.js'
+import * as ytweb from './ytweb.js'
+import * as soop from './soop.js'
 import { openProject, saveProject, isMedia } from './projectIO.js'
 import * as updater from './updater.js'
 import { fitOutputResize } from '../src/core/outputResize.js'
@@ -402,6 +404,14 @@ function registerIpc() {
   h('youtube:disconnect', () => youtube.disconnect())
   h('youtube:setPollSeconds', (s) => youtube.setPollSeconds(s))
 
+  // YouTube 간편 연결 / SOOP
+  h('ytweb:status', () => ytweb.getStatus())
+  h('ytweb:connect', (t) => ytweb.connect(t))
+  h('ytweb:disconnect', () => ytweb.disconnect())
+  h('soop:status', () => soop.getStatus())
+  h('soop:connect', (t) => soop.connect(t))
+  h('soop:disconnect', () => soop.disconnect())
+
   // 로그
   h('log:openFolder', () => shell.openPath(logDir()))
   h('log:export', async () => {
@@ -462,11 +472,19 @@ app.whenReady().then(() => {
   youtube.init((ch, data) => {
     send(editor, ch, data)
   })
+  ytweb.init((ch, data) => {
+    send(editor, ch, data)
+  })
+  soop.init((ch, data) => {
+    send(editor, ch, data)
+  })
   updater.init((ch, data) => send(editor, ch, data), { beforeInstall: () => { forceClose = true } })
   registerIpc()
   createEditor()
   setTimeout(() => chzzk.autoConnectIfNeeded(), 1500)
   setTimeout(() => youtube.autoConnectIfNeeded(), 2500)
+  setTimeout(() => ytweb.autoConnectIfNeeded(), 3000)
+  setTimeout(() => soop.autoConnectIfNeeded(), 3500)
 })
 
 app.on('window-all-closed', () => app.quit())

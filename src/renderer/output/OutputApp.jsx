@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 import { Stage, Fit } from '../scene/SceneView.jsx'
+import { transitionFrames, transitionMs } from '../../core/transitions.js'
 
 const EMPTY = { layers: [], output: { width: 1920, height: 1080, fps: 30, transition: 'fade' }, projectDir: null, sceneKey: null, diag: false }
-const FADE_MS = 450
+const WRAP = { position: 'absolute', inset: 0, overflow: 'hidden', willChange: 'transform, opacity' }
 
 export default function OutputApp() {
   const [state, setState] = useState(EMPTY)
@@ -33,7 +34,7 @@ export default function OutputApp() {
       setPrev({ layers: lastLayers.current, projectDir: state.projectDir })
       setFading(false)
       requestAnimationFrame(() => requestAnimationFrame(() => setFading(true)))
-      const t = setTimeout(() => setPrev(null), FADE_MS + 80)
+      const t = setTimeout(() => setPrev(null), transitionMs(state.output.transition) + 80)
       lastKey.current = state.sceneKey
       lastLayers.current = state.layers
       return () => clearTimeout(t)
@@ -78,20 +79,23 @@ export default function OutputApp() {
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000', overflow: 'hidden', cursor: 'default' }}>
       <Fit style={{ width: '100%', height: '100%' }}>
-        {({ scale }) => (
-          <>
-            {prev && <Stage layers={prev.layers.filter((l) => l.kind !== 'Widget')} projectDir={prev.projectDir} chat={chat} scale={scale} style={{ opacity: fading ? 0 : 1, transition: `opacity ${FADE_MS}ms ease` }} />}
-            <Stage
-              layers={state.layers}
-              projectDir={state.projectDir}
-              chat={chat}
-              scale={scale}
-              widgetLive
-              widgetUrls={widgets}
-              style={prev ? { opacity: fading ? 1 : 0, transition: `opacity ${FADE_MS}ms ease` } : undefined}
-            />
-          </>
-        )}
+        {({ scale }) => {
+          const fr = transitionFrames(state.output.transition)
+          const ease = `${transitionMs(state.output.transition)}ms ease`
+          const move = `transform ${ease}, opacity ${ease}, filter ${ease}, clip-path ${ease}`
+          return (
+            <>
+              {prev && (
+                <div style={{ ...WRAP, ...(fading ? fr.prevTo : fr.prevFrom), transition: move }}>
+                  <Stage layers={prev.layers.filter((l) => l.kind !== 'Widget')} projectDir={prev.projectDir} chat={chat} scale={scale} />
+                </div>
+              )}
+              <div style={prev ? { ...WRAP, ...(fading ? fr.nextTo : fr.nextFrom), transition: move } : { position: 'absolute', inset: 0 }}>
+                <Stage layers={state.layers} projectDir={state.projectDir} chat={chat} scale={scale} widgetLive widgetUrls={widgets} />
+              </div>
+            </>
+          )
+        }}
       </Fit>
       {state.diag && (
         <pre style={{ position: 'absolute', right: 12, top: 8, margin: 0, color: '#8dff6b', font: '28px Consolas, monospace', textAlign: 'right', textShadow: '0 0 4px #000' }}>

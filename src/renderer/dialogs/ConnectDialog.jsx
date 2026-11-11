@@ -185,7 +185,7 @@ function ChzzkPanel() {
 }
 
 // ───────────────────────── YouTube ─────────────────────────
-function YoutubePanel() {
+function YoutubeApiPanel() {
   const y = useStore((s) => s.youtube)
   const [busy, run] = useRun()
   const [editKey, setEditKey] = useState(false)
@@ -302,18 +302,100 @@ function YoutubePanel() {
   )
 }
 
+// ───────────── 로그인이 필요 없는 연결(YouTube 간편 · SOOP) ─────────────
+function SimplePanel({ st, api: a, placeholder, label, help, notes, autoKey }) {
+  const [busy, run] = useRun()
+  const [target, setTarget] = useState(st.target ?? '')
+  const active = st.state === 'connected' || st.state === 'connecting' || st.state === 'retry'
+  return (
+    <>
+      <div className="card" style={{ padding: 16 }}>
+        <div className="row" style={{ marginBottom: 12 }} role="status">
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: DOT[st.state] ?? 'var(--text-disabled)', flex: '0 0 auto' }} />
+          <span style={{ fontSize: 15, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{st.text}</span>
+        </div>
+        <label htmlFor="simple-target" className="muted" style={{ display: 'block', marginBottom: 4 }}>{label}</label>
+        <input id="simple-target" type="text" value={target} placeholder={placeholder} disabled={active} style={{ width: '100%', marginBottom: 10 }} onChange={(e) => setTarget(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !active && target.trim() && run(() => a.connect(target))} />
+        {active ? (
+          <button disabled={busy} onClick={() => run(() => a.disconnect())}>연결 끊기</button>
+        ) : (
+          <button className="accent" disabled={busy || !target.trim()} onClick={() => run(() => a.connect(target))}>연결</button>
+        )}
+        <div className="muted" style={{ marginTop: 10, whiteSpace: 'normal', lineHeight: 1.6 }}>{help}</div>
+        <label className="check" style={{ marginTop: 10 }}>
+          <input type="checkbox" checked={st.autoConnect} onChange={(e) => api.setSettings({ [autoKey]: e.target.checked })} />
+          프로그램을 켤 때 자동으로 연결
+        </label>
+      </div>
+      <div className="card" style={{ marginTop: 10, padding: 12 }}>
+        <div className="muted" style={{ whiteSpace: 'normal', lineHeight: 1.7 }}>{notes}</div>
+      </div>
+    </>
+  )
+}
+
+function YoutubePanel() {
+  const ytweb = useStore((s) => s.ytweb)
+  const [mode, setMode] = useState(() => (localStorage.getItem('cueframe.ytMode') === 'api' ? 'api' : 'easy'))
+  const pickMode = (m) => {
+    setMode(m)
+    try {
+      localStorage.setItem('cueframe.ytMode', m)
+    } catch {}
+  }
+  return (
+    <>
+      <div className="row" style={{ marginBottom: 10 }}>
+        <label className="check"><input type="radio" name="ytmode" checked={mode === 'easy'} onChange={() => pickMode('easy')} /> 간편 연결 (로그인·키 필요 없음)</label>
+        <label className="check"><input type="radio" name="ytmode" checked={mode === 'api'} onChange={() => pickMode('api')} /> 공식 API (구글 인증 필요)</label>
+      </div>
+      {mode === 'easy' ? (
+        <SimplePanel
+          st={ytweb}
+          api={api.ytweb}
+          autoKey="autoConnectYtweb"
+          label="방송 주소, 영상 ID, 또는 @채널 이름"
+          placeholder="https://www.youtube.com/watch?v=...  또는  @채널이름"
+          help="@채널 이름으로 연결하면 그 채널의 지금 라이브에 붙고, 방송이 아직 없으면 시작할 때까지 기다립니다."
+          notes={<>로그인 없이 시청자가 보는 공개 채팅을 읽습니다. 읽기만 하며 채팅을 보내지 않습니다. 비공식 방식이라 YouTube가 화면 구조를 바꾸면 갑자기 안 될 수 있습니다. 그럴 때는 <b>공식 API</b>를 쓰세요. 슈퍼챗·멤버십 알림과 채널 이모지도 표시됩니다.</>}
+        />
+      ) : (
+        <YoutubeApiPanel />
+      )}
+    </>
+  )
+}
+
+function SoopPanel() {
+  const soop = useStore((s) => s.soop)
+  return (
+    <SimplePanel
+      st={soop}
+      api={api.soop}
+      autoKey="autoConnectSoop"
+      label="방송인 ID 또는 방송 주소"
+      placeholder="https://play.sooplive.com/방송인ID  또는  방송인ID"
+      help="방송 중인 채널만 연결됩니다. 방송이 아직 시작되지 않았으면 몇 초 간격으로 다시 확인합니다."
+      notes={<>로그인 없이 시청자처럼 채팅을 읽습니다. 읽기만 하며 채팅을 보내지 않습니다. <b>19세 이상·비밀번호 방송은 지원하지 않습니다.</b> 비공식 방식이라 SOOP이 바꾸면 갑자기 안 될 수 있습니다. 이모티콘 이미지는 표시하지 않고 별풍선은 문구로 표시합니다.</>}
+    />
+  )
+}
+
 // ───────────────────────── 창 ─────────────────────────
 const TABS = [
   { id: 'chzzk', label: '치지직' },
   { id: 'youtube', label: 'YouTube' },
-  { id: 'soop', label: 'SOOP', disabled: true, hint: '준비 중' },
+  { id: 'soop', label: 'SOOP' },
 ]
 
 export default function ConnectDialog({ d }) {
   const close = useDialogs((s) => s.close)
   const chzzk = useStore((s) => s.chzzk)
   const youtube = useStore((s) => s.youtube)
-  const first = d.props?.tab ?? (youtube.state === 'connected' && chzzk.state !== 'connected' ? 'youtube' : localStorage.getItem('cueframe.connectTab') === 'youtube' ? 'youtube' : 'chzzk')
+  const ytweb = useStore((s) => s.ytweb)
+  const soop = useStore((s) => s.soop)
+  const saved = localStorage.getItem('cueframe.connectTab')
+  const first = d.props?.tab ?? (chzzk.state !== 'connected' && (youtube.state === 'connected' || ytweb.state === 'connected') ? 'youtube' : chzzk.state !== 'connected' && soop.state === 'connected' ? 'soop' : ['youtube', 'soop'].includes(saved) ? saved : 'chzzk')
   const [tab, setTab] = useState(first)
   const pick = (id) => {
     setTab(id)
@@ -327,8 +409,7 @@ export default function ConnectDialog({ d }) {
       <div className="body" style={{ whiteSpace: 'normal' }}>
         <div role="tablist" aria-label="플랫폼" style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
           {TABS.map((t) => {
-            const st = t.id === 'chzzk' ? chzzk : t.id === 'youtube' ? youtube : null
-            const dot = st && dotOf(st)
+            const dot = t.id === 'chzzk' ? dotOf(chzzk) : t.id === 'youtube' ? dotOf(youtube) ?? dotOf(ytweb) : dotOf(soop)
             return (
               <button
                 key={t.id}
@@ -346,7 +427,7 @@ export default function ConnectDialog({ d }) {
             )
           })}
         </div>
-        {tab === 'youtube' ? <YoutubePanel /> : <ChzzkPanel />}
+        {tab === 'youtube' ? <YoutubePanel /> : tab === 'soop' ? <SoopPanel /> : <ChzzkPanel />}
       </div>
     </Shell>
   )

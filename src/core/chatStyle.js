@@ -8,6 +8,8 @@ export const PATTERN_LABEL = { none: '없음', dots: '물방울', stripes: '줄�
 export const SHAPES = ['heart', 'sparkle', 'star', 'ribbon', 'clover', 'leaf', 'crown', 'dot']
 export const SHAPE_LABEL = { heart: '하트', sparkle: '반짝이', star: '별', ribbon: '리본', clover: '클로버', leaf: '잎사귀', crown: '왕관', dot: '점' }
 // 도형 장식이 기준으로 삼는 자리: tl=왼쪽 위, tr=오른쪽 위, bl=왼쪽 아래, br=오른쪽 아래, tc=위 가운데, bc=아래 가운데
+export const BG_FITS = ['cover', 'contain', 'tile']
+export const BG_FIT_LABEL = { cover: '꽉 채우기', contain: '전체 보이기', tile: '타일 반복' }
 export const ANCHORS = ['tl', 'tr', 'bl', 'br', 'tc', 'bc']
 export const ANCHOR_LABEL = { tl: '왼쪽 위', tr: '오른쪽 위', bl: '왼쪽 아래', br: '오른쪽 아래', tc: '위 가운데', bc: '아래 가운데' }
 export const MAX_IMAGE_ORNAMENTS = 10
@@ -28,6 +30,9 @@ export function defaultChatStyle() {
     bgColor: '#121416',
     bgColor2: '#121416',
     bgOpacity: 0.78,
+    bgImage: '', // 배경 그림 파일(비우면 없음)
+    bgImageFit: 'cover',
+    bgImageOpacity: 1,
     borderColor: '#4FD1B1',
     borderWidth: 2,
     radius: 16,
@@ -114,6 +119,9 @@ export function normalizeChatStyle(raw) {
     bgColor: hex(r.bgColor, d.bgColor),
     bgColor2: hex(r.bgColor2, d.bgColor2),
     bgOpacity: clamp(num(r.bgOpacity, d.bgOpacity), 0, 1),
+    bgImage: str(r.bgImage, 600, ''),
+    bgImageFit: oneOf(r.bgImageFit, BG_FITS, d.bgImageFit),
+    bgImageOpacity: clamp(num(r.bgImageOpacity, d.bgImageOpacity), 0, 1),
     borderColor: hex(r.borderColor, d.borderColor),
     borderWidth: clamp(num(r.borderWidth, d.borderWidth), 0, 20),
     radius: clamp(num(r.radius, d.radius), 0, 80),

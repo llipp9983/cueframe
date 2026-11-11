@@ -74,6 +74,16 @@ export default function TextPanel({ layer }) {
         {s.shadow && <ColorRow label="그림자 색" value={s.shadowColor} onChange={field('shadowColor')} />}
         <SliderRow label="테두리 굵기" value={s.outline} min={0} max={20} onChange={field('outline')} />
         {s.outline > 0 && <ColorRow label="테두리 색" value={s.outlineColor} onChange={field('outlineColor')} />}
+        <button
+          style={{ marginTop: 4 }}
+          title="글꼴·크기·색·정렬·그림자·테두리를 처음 상태로 (내용과 카운트다운 시각은 그대로)"
+          onClick={() => {
+            const d = defaultTextStyle(s.mode)
+            set({ fontFamily: d.fontFamily, fontSize: d.fontSize, color: d.color, bold: d.bold, italic: d.italic, align: d.align, vAlign: d.vAlign, subScale: d.subScale, lineHeight: d.lineHeight, letterSpacing: d.letterSpacing, shadow: d.shadow, shadowColor: d.shadowColor, outline: d.outline, outlineColor: d.outlineColor }, 'reset')
+          }}
+        >
+          글자 모양 초기화
+        </button>
       </Collapse>
     </>
   )

@@ -45,6 +45,26 @@ function Pattern({ s }) {
   return <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', ...bg }} />
 }
 
+function BgImage({ s, projectDir }) {
+  const url = mediaUrl(projectDir, s.bgImage)
+  if (!url) return null
+  const tile = s.bgImageFit === 'tile'
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        opacity: s.bgImageOpacity,
+        backgroundImage: `url("${url}")`,
+        backgroundRepeat: tile ? 'repeat' : 'no-repeat',
+        backgroundPosition: 'center',
+        backgroundSize: tile ? 'auto' : s.bgImageFit,
+      }}
+    />
+  )
+}
+
 const Message = memo(function Message({ m, s }) {
   const streamer = m.streamer
   const right = streamer && s.streamerRight
@@ -132,6 +152,7 @@ function ChatWindow({ style, messages, projectDir, width, height }) {
         fontFamily: fontStack(s.fontFamily),
       }}
     >
+      {s.bgImage && <BgImage s={s} projectDir={projectDir} />}
       <Pattern s={s} />
       {s.shapes.filter((x) => !x.front).map((x, i) => (
         <Shape key={'b' + i} shape={x.shape} color={x.color} size={x.size} rotation={x.rotation} style={anchorStyle(x)} />

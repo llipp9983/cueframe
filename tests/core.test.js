@@ -435,9 +435,9 @@ describe('particles and extra effects', () => {
 import fs from 'node:fs'
 import { TEMPLATES, buildTemplateProject, SURFACE_Y } from '../src/core/templates.js'
 describe('templates', () => {
-  it('has 6 templates with unique ids and all art files on disk', () => {
-    expect(TEMPLATES).toHaveLength(6)
-    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(6)
+  it('has 10 templates with unique ids and all art files on disk', () => {
+    expect(TEMPLATES).toHaveLength(10)
+    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(10)
     for (const t of TEMPLATES) {
       for (const f of ['bg.jpg', 'table.png', 'thumb.jpg', ...t.props.map((p) => p.file)]) {
         expect(fs.existsSync(`assets/templates/${t.id}/${f}`), `${t.id}/${f}`).toBe(true)

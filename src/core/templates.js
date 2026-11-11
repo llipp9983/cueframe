@@ -1,4 +1,4 @@
-// 대기화면 템플릿 6종. 그림 파일은 assets/templates/<id>/ 에 있고(scripts/gen-templates.mjs 가 그린다),
+// 대기화면 템플릿 10종. 그림 파일은 assets/templates/<id>/ 에 있고(scripts/gen-templates.mjs 가 그린다),
 // 여기서는 어떤 레이어를 어디에 놓을지만 정한다. 소품은 모두 테이블 윗면(SURFACE_Y)에 서 있다.
 import { createLayer, CANVAS_W, CANVAS_H } from './layer.js'
 import { defaultTextStyle } from './textStyle.js'
@@ -105,6 +105,70 @@ export const TEMPLATES = [
       { file: 'plant.png', w: 250, h: 340, x: 940, name: '화분' },
     ],
   },
+  {
+    id: 'arcade-night',
+    name: '아케이드 나이트',
+    description: '레트로 석양과 격자 바닥. 장면이 네온 빛이 쓸고 지나가듯(닦아내기) 바뀝니다.',
+    transition: 'wipe',
+    font: 'Black Han Sans',
+    chatPreset: '네온 사이버',
+    title: 'PRESS START',
+    textColor: '#FFF1FB',
+    particles: { type: 'sparkle', count: 26, size: 16, speed: 20, sway: 20, color: '#FF7AE8' },
+    props: [
+      { file: 'joystick.png', w: 220, h: 300, x: 170, name: '조이스틱', fx: { glow: 0.5, glowColor: '#FF2BD6', pulse: 0.2, floatSpeed: 5 } },
+      { file: 'cube.png', w: 240, h: 240, x: 560, name: '네온 큐브', fx: { glow: 0.6, glowColor: '#00E5FF', float: 10, floatSpeed: 4 } },
+      { file: 'headphones.png', w: 260, h: 240, x: 1000, name: '헤드폰', fx: { glow: 0.35, glowColor: '#FF2BD6' } },
+    ],
+  },
+  {
+    id: 'snow-cabin',
+    name: '눈 오는 오두막',
+    description: '눈 내리는 겨울밤, 창가의 따뜻한 불빛. 장면이 흐려지며(블러) 부드럽게 바뀝니다.',
+    transition: 'blur',
+    font: 'Gowun Dodum',
+    chatPreset: '다크 골드',
+    title: '따뜻하게 기다려 주세요',
+    textColor: '#FFF3DC',
+    particles: { type: 'snow', count: 44, size: 16, speed: 26, sway: 40, color: '#FFFFFF' },
+    props: [
+      { file: 'snowman.png', w: 240, h: 340, x: 150, name: '눈사람', fx: { sway: 2, floatSpeed: 6 } },
+      { file: 'mug.png', w: 200, h: 190, x: 620, name: '머그잔', fx: { shadow: 0.3 } },
+      { file: 'books.png', w: 320, h: 170, x: 930, name: '책' },
+    ],
+  },
+  {
+    id: 'aquarium',
+    name: '아쿠아리움',
+    description: '푸른 물속과 빛줄기, 산호와 물고기. 장면이 물속으로 빨려 들듯(줌) 바뀝니다.',
+    transition: 'zoom',
+    font: 'Jua',
+    chatPreset: '민트 소다',
+    title: '곧 방송이 시작돼요',
+    textColor: '#EAFBFF',
+    particles: { type: 'bubble', count: 30, size: 26, speed: 24, sway: 50, color: '#BFEFFF' },
+    props: [
+      { file: 'coral.png', w: 260, h: 330, x: 150, name: '산호', fx: { sway: 2, floatSpeed: 6 } },
+      { file: 'fish.png', w: 300, h: 220, x: 560, name: '물고기', fx: { float: 14, floatSpeed: 3 } },
+      { file: 'shell.png', w: 200, h: 160, x: 1010, name: '조개', fx: { shadow: 0.3 } },
+    ],
+  },
+  {
+    id: 'autumn-forest',
+    name: '가을 숲',
+    description: '단풍 든 숲과 낙엽. 장면이 옆으로 밀리듯(슬라이드) 바뀝니다.',
+    transition: 'slide-left',
+    font: 'Do Hyeon',
+    chatPreset: '다크 골드',
+    title: '가을 바람이 불면 시작해요',
+    textColor: '#FFF1DA',
+    particles: { type: 'petal', count: 26, size: 30, speed: 16, sway: 80, color: '#F2994A' },
+    props: [
+      { file: 'pumpkin.png', w: 260, h: 220, x: 170, name: '호박', fx: { shadow: 0.35 } },
+      { file: 'mug.png', w: 200, h: 190, x: 600, name: '머그잔', fx: { shadow: 0.3 } },
+      { file: 'books.png', w: 320, h: 170, x: 940, name: '책' },
+    ],
+  },
 ]
 
 const presetStyle = (name) => (BUILTIN_PRESETS.find((p) => p.name === name) ?? BUILTIN_PRESETS[0]).style
@@ -145,5 +209,5 @@ export function buildTemplateProject(t, dir, now = Date.now()) {
   const cd = wait.layers.find((l) => l.kind === 'Text' && l.text.mode === 'countdown')
   cd.text = { ...cd.text, targetAt: new Date(now + 10 * 60 * 1000).toISOString() }
   const soon = newScene('곧 시작', sceneLayers(t, dir, 'soon'))
-  return { ...base, scenes: [wait, soon], activeSceneId: wait.id, layers: wait.layers }
+  return { ...base, output: { ...base.output, transition: t.transition ?? 'fade' }, scenes: [wait, soon], activeSceneId: wait.id, layers: wait.layers }
 }

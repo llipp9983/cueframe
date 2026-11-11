@@ -4,14 +4,14 @@ export const MAX_EMOJIS = 30
 const ALLOWED_HOST = /(^|\.)(pstatic\.net|naver\.com|navercdn\.com|naver\.net)$/i
 
 /** 받은 이모티콘 표에서 https 이고 네이버 이미지 서버인 것만 남긴다(임의의 주소로 요청이 나가지 않게). */
-export function cleanEmojis(map) {
+export function cleanEmojis(map, allowedHost = ALLOWED_HOST) {
   const out = {}
   if (!map || typeof map !== 'object') return out
   for (const [name, url] of Object.entries(map).slice(0, MAX_EMOJIS)) {
     if (!/^[A-Za-z0-9_]{1,40}$/.test(name) || typeof url !== 'string' || url.length > 600) continue
     try {
       const u = new URL(url)
-      if (u.protocol === 'https:' && ALLOWED_HOST.test(u.hostname)) out[name] = u.toString()
+      if (u.protocol === 'https:' && allowedHost.test(u.hostname)) out[name] = u.toString()
     } catch {}
   }
   return out

@@ -79,6 +79,10 @@ contextBridge.exposeInMainWorld('api', {
     setPollSeconds: invoke('youtube:setPollSeconds'),
   },
   onYoutubeStatus: on('youtube:status'),
+  ytweb: { status: invoke('ytweb:status'), connect: invoke('ytweb:connect'), disconnect: invoke('ytweb:disconnect') },
+  onYtwebStatus: on('ytweb:status'),
+  soop: { status: invoke('soop:status'), connect: invoke('soop:connect'), disconnect: invoke('soop:disconnect') },
+  onSoopStatus: on('soop:status'),
   update: {
     state: invoke('update:state'),
     check: invoke('update:check'),

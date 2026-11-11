@@ -143,6 +143,67 @@ const BG = {
       <circle cx="1560" cy="220" r="360" fill="url(#glow)"/><circle cx="300" cy="860" r="320" fill="url(#glow2)"/>`,
       rad('bg', [[0, '#1b2330'], [1, '#080b10']], 0.5, 0.4, 0.8) + rad('glow', [[0, '#4FD1B1', 0.18], [1, '#4FD1B1', 0]]) + rad('glow2', [[0, '#7A8CFF', 0.12], [1, '#7A8CFF', 0]]))
   },
+  'arcade-night'() {
+    const r = rng(41)
+    let stars = ''
+    for (let i = 0; i < 90; i++) stars += `<rect x="${(r() * W).toFixed(0)}" y="${(r() * 420).toFixed(0)}" width="3" height="3" fill="#fff" opacity="${(0.3 + r() * 0.7).toFixed(2)}"/>`
+    let grid = ''
+    for (let i = -12; i <= 12; i++) grid += `<path d="M${960 + i * 60} 640 L${960 + i * 330} 1080" stroke="#FF2BD6" stroke-width="2" opacity="0.55"/>`
+    for (let i = 0; i < 9; i++) grid += `<rect x="0" y="${640 + Math.pow(i / 8, 2) * 440}" width="${W}" height="2" fill="#FF2BD6" opacity="0.5"/>`
+    let bars = ''
+    for (let i = 0; i < 9; i++) bars += `<rect x="640" y="${520 + i * 18}" width="640" height="${3 + i * 1.2}" fill="#2a0a4a" opacity="0.9"/>`
+    return svg(W, H, `
+      <rect width="${W}" height="${H}" fill="url(#sky)"/>${stars}
+      <circle cx="960" cy="520" r="300" fill="url(#halo)"/><circle cx="960" cy="520" r="200" fill="url(#sun)"/>${bars}
+      <path d="M0 640 L140 560 L250 610 L380 520 L520 620 L700 560 L860 640 L1060 560 L1220 630 L1400 540 L1560 620 L1720 550 L1920 640 L1920 650 L0 650Z" fill="#1a0838"/>
+      <rect x="0" y="640" width="${W}" height="440" fill="url(#floor)"/>${grid}
+      <rect x="0" y="638" width="${W}" height="4" fill="#00E5FF" opacity="0.9"/>`,
+      lin('sky', [[0, '#0a0420'], [0.6, '#2a0a5e'], [1, '#5a1a7a']]) + rad('halo', [[0, '#FF2BD6', 0.45], [1, '#FF2BD6', 0]]) + lin('sun', [[0, '#FFE86B'], [0.5, '#FF8A5B'], [1, '#FF2BD6']]) + lin('floor', [[0, '#1a0838'], [1, '#0a0420']]))
+  },
+  'snow-cabin'() {
+    const r = rng(53)
+    let stars = ''
+    for (let i = 0; i < 70; i++) stars += `<circle cx="${(r() * W).toFixed(0)}" cy="${(r() * 420).toFixed(0)}" r="${(0.8 + r() * 1.6).toFixed(1)}" fill="#fff" opacity="${(0.3 + r() * 0.6).toFixed(2)}"/>`
+    let pines = ''
+    for (const [x, h] of [[120, 300], [260, 380], [1560, 340], [1700, 420], [1840, 320], [1420, 260]]) {
+      pines += `<path d="M${x} ${700 - h} L${x + 70} ${700 - h * 0.45} L${x + 34} ${700 - h * 0.45} L${x + 90} ${700 - h * 0.1} L${x - 90} ${700 - h * 0.1} L${x - 34} ${700 - h * 0.45} L${x - 70} ${700 - h * 0.45}Z" fill="#0f2a3a"/>`
+      pines += `<path d="M${x} ${700 - h} L${x + 34} ${700 - h * 0.7} L${x - 34} ${700 - h * 0.7}Z" fill="#e8f4ff" opacity="0.9"/>`
+    }
+    return svg(W, H, `
+      <rect width="${W}" height="${H}" fill="url(#sky)"/>${stars}
+      <circle cx="1560" cy="170" r="70" fill="#F4F8FF"/><circle cx="1560" cy="170" r="150" fill="url(#moon)"/>
+      <path d="M0 720 Q300 640 640 700 T1300 690 T1920 700 V1080 H0Z" fill="#dfeaf7"/><path d="M0 800 Q400 740 900 790 T1920 780 V1080 H0Z" fill="#c5d6ea"/>${pines}
+      <rect x="640" y="380" width="640" height="340" fill="#6b4a36"/><path d="M600 390 L960 230 L1320 390Z" fill="#3b2a24"/><path d="M630 385 L960 245 L1290 385Z" fill="#f4f8ff"/>
+      <rect x="720" y="470" width="190" height="150" rx="8" fill="#FFD27F"/><rect x="720" y="470" width="190" height="150" rx="8" fill="url(#win)"/><path d="M815 470 V620 M720 545 H910" stroke="#4a3426" stroke-width="10"/>
+      <rect x="1030" y="480" width="150" height="240" rx="8" fill="#4a3426"/><circle cx="1160" cy="610" r="8" fill="#FFD27F"/>
+      <rect x="1100" y="260" width="70" height="120" fill="#4a3426"/><ellipse cx="1135" cy="240" rx="50" ry="18" fill="#cfd8e6" opacity="0.7"/><ellipse cx="1160" cy="190" rx="60" ry="22" fill="#cfd8e6" opacity="0.45"/>`,
+      lin('sky', [[0, '#0b1230'], [1, '#27407a']]) + rad('moon', [[0, '#cfe4ff', 0.4], [1, '#cfe4ff', 0]]) + rad('win', [[0, '#FFF1B0', 0.9], [1, '#FF9A3D', 0.2]]))
+  },
+  aquarium() {
+    const r = rng(67)
+    let rays = ''
+    for (let i = 0; i < 7; i++) rays += `<path d="M${200 + i * 260} 0 L${340 + i * 260} 0 L${120 + i * 260 + 120} 1080 L${i * 260} 1080Z" fill="#CFF6FF" opacity="${(0.05 + (i % 3) * 0.03).toFixed(2)}"/>`
+    let dots = ''
+    for (let i = 0; i < 40; i++) dots += `<circle cx="${(r() * W).toFixed(0)}" cy="${(r() * 900).toFixed(0)}" r="${(3 + r() * 9).toFixed(0)}" fill="none" stroke="#DFF8FF" stroke-width="2" opacity="${(0.15 + r() * 0.3).toFixed(2)}"/>`
+    return svg(W, H, `
+      <rect width="${W}" height="${H}" fill="url(#water)"/>${rays}${dots}
+      <path d="M0 960 Q200 900 420 950 T900 940 T1400 950 T1920 920 V1080 H0Z" fill="#0b3a66"/>
+      <ellipse cx="300" cy="170" rx="120" ry="40" fill="#fff" opacity="0.05"/>`,
+      lin('water', [[0, '#5fd0f0'], [0.45, '#1d86c8'], [1, '#0a2a5e']]))
+  },
+  'autumn-forest'() {
+    const r = rng(79)
+    let trunks = ''
+    for (const [x, w] of [[90, 90], [330, 60], [1500, 100], [1740, 70], [1230, 50]]) trunks += `<rect x="${x}" y="0" width="${w}" height="860" fill="${r() > 0.5 ? '#5b3a29' : '#6b4630'}"/><rect x="${x + w * 0.2}" y="0" width="${w * 0.12}" height="860" fill="#fff" opacity="0.07"/>`
+    let leaves = ''
+    const cols = ['#F2994A', '#E0612B', '#F2C14E', '#B8442A', '#D98A2B']
+    for (let i = 0; i < 160; i++) leaves += `<ellipse cx="${(r() * W).toFixed(0)}" cy="${(r() * 640).toFixed(0)}" rx="${(14 + r() * 26).toFixed(0)}" ry="${(8 + r() * 14).toFixed(0)}" fill="${cols[(r() * 5) | 0]}" opacity="${(0.5 + r() * 0.45).toFixed(2)}" transform="rotate(${(r() * 180).toFixed(0)} ${(r() * W).toFixed(0)} 300)"/>`
+    return svg(W, H, `
+      <rect width="${W}" height="${H}" fill="url(#sky)"/>
+      <circle cx="960" cy="260" r="220" fill="url(#sun)"/>${trunks}${leaves}
+      <rect x="0" y="780" width="${W}" height="300" fill="#8a4a24"/>`,
+      lin('sky', [[0, '#f7c77c'], [0.6, '#f19a52'], [1, '#c96a38']]) + rad('sun', [[0, '#FFF1C4', 0.7], [1, '#FFF1C4', 0]]))
+  },
 }
 
 // ───────────────────────── 테이블 (1920×300, 윗면은 22번째 줄부터) ─────────────────────────
@@ -153,12 +214,16 @@ const TABLE_STYLE = {
   'mint-room': { top: '#FFFFFF', hi: '#FFFFFF', b1: '#F0FFFA', b2: '#CFEFE4', line: '#6aa595' },
   'sunset-beach': { top: '#E0B070', hi: '#F2CE96', b1: '#C99A62', b2: '#9a6a3c', line: '#5a3a1c' },
   'minimal-dark': { top: '#39424f', hi: '#566272', b1: '#262d37', b2: '#171c24', line: '#000' },
+  'arcade-night': { top: '#2a1456', hi: '#FF2BD6', b1: '#1a0a3a', b2: '#0c0420', line: '#00E5FF' },
+  'snow-cabin': { top: '#8a5a3c', hi: '#b07a54', b1: '#6b4630', b2: '#46291a', line: '#2a160c' },
+  aquarium: { top: '#dff3f7', hi: '#ffffff', b1: '#9fd4e4', b2: '#5aa8c4', line: '#2a6a88' },
+  'autumn-forest': { top: '#b9773c', hi: '#d9955a', b1: '#8a5428', b2: '#5a3416', line: '#2a160c' },
 }
 function table(id) {
   const s = TABLE_STYLE[id]
   let lines = ''
   for (let i = 0; i < 6; i++) lines += `<rect x="0" y="${72 + i * 40}" width="${W}" height="2" fill="${s.line}" opacity="${id === 'neon-city' ? 0.12 : 0.1}"/>`
-  const extra = id === 'neon-city' ? `<rect x="0" y="${TABLE_TOP_ROW}" width="${W}" height="3" fill="${s.hi}" filter="url(#g)"/><rect x="0" y="${TABLE_TOP_ROW}" width="${W}" height="3" fill="${s.hi}"/>` : ''
+  const extra = id === 'neon-city' || id === 'arcade-night' ? `<rect x="0" y="${TABLE_TOP_ROW}" width="${W}" height="3" fill="${s.hi}" filter="url(#g)"/><rect x="0" y="${TABLE_TOP_ROW}" width="${W}" height="3" fill="${s.hi}"/>` : ''
   return svg(W, TABLE_H, `
     <rect x="0" y="${TABLE_TOP_ROW}" width="${W}" height="${TABLE_H - TABLE_TOP_ROW}" fill="url(#body)"/>
     <rect x="0" y="${TABLE_TOP_ROW}" width="${W}" height="24" fill="${s.top}"/><rect x="0" y="${TABLE_TOP_ROW}" width="${W}" height="6" fill="${s.hi}" opacity="0.8"/>
@@ -248,6 +313,42 @@ const PROP = {
     <ellipse cx="110" cy="290" rx="60" ry="9" fill="#2a3340"/><rect x="92" y="212" width="36" height="76" rx="6" fill="#39424f"/><rect x="62" y="270" width="96" height="20" rx="8" fill="#2f3845"/>
     <circle cx="110" cy="116" r="104" fill="url(#sp)"/><ellipse cx="76" cy="70" rx="30" ry="18" fill="#fff" opacity="0.5" transform="rotate(-30 76 70)"/>`,
     rad('sp', [[0, '#bff7ec'], [1, '#1e8f78']], 0.35, 0.3, 0.9)),
+  'joystick.png': () => svg(220, 300, `
+    <ellipse cx="110" cy="292" rx="96" ry="8" fill="#000" opacity="0.25"/>
+    <rect x="14" y="196" width="192" height="96" rx="20" fill="#2a2f55"/><rect x="14" y="196" width="192" height="14" rx="7" fill="#46508f"/>
+    <circle cx="52" cy="248" r="14" fill="#FF2BD6"/><circle cx="92" cy="258" r="14" fill="#00E5FF"/><circle cx="132" cy="248" r="14" fill="#FFE86B"/><circle cx="172" cy="236" r="12" fill="#7CFFB2"/>
+    <rect x="98" y="90" width="24" height="112" rx="10" fill="#8c95ab"/><circle cx="110" cy="72" r="56" fill="url(#bl)"/><ellipse cx="90" cy="52" rx="16" ry="10" fill="#fff" opacity="0.5" transform="rotate(-30 90 52)"/>`,
+    rad('bl', [[0, '#FF7AE8'], [1, '#B3128F']], 0.35, 0.3, 0.9)),
+  'snowman.png': () => svg(240, 340, `
+    <ellipse cx="120" cy="334" rx="96" ry="8" fill="#000" opacity="0.2"/>
+    <circle cx="120" cy="248" r="84" fill="#F4F8FF"/><circle cx="120" cy="140" r="62" fill="#FFFFFF"/><circle cx="120" cy="60" r="44" fill="#F4F8FF"/>
+    <rect x="84" y="10" width="72" height="14" rx="4" fill="#2a2f45"/><rect x="96" y="-2" width="48" height="24" rx="4" fill="#2a2f45" transform="translate(0 6)"/><rect x="96" y="22" width="48" height="6" fill="#E0457B"/>
+    <circle cx="106" cy="56" r="4.5" fill="#2a2f45"/><circle cx="134" cy="56" r="4.5" fill="#2a2f45"/><path d="M120 66 L166 74 L120 80Z" fill="#F2994A"/>
+    <path d="M78 98 H162 V120 H78Z" fill="#E0457B"/><path d="M142 120 V170 H162 V120Z" fill="#C93A6B"/>
+    <circle cx="120" cy="150" r="5" fill="#2a2f45"/><circle cx="120" cy="178" r="5" fill="#2a2f45"/><circle cx="120" cy="250" r="6" fill="#2a2f45"/>
+    <path d="M62 130 L16 100 M178 130 L224 100" stroke="#6b4630" stroke-width="7" stroke-linecap="round"/>`),
+  'coral.png': () => svg(260, 330, `
+    <ellipse cx="130" cy="324" rx="108" ry="8" fill="#000" opacity="0.2"/>
+    <path d="M130 324 C130 260 100 240 80 180 C70 150 90 130 90 100 M130 324 C132 250 170 230 190 170 C200 140 180 120 184 80 M130 324 C130 270 130 220 130 150 C130 110 150 90 140 40" stroke="#FF6F91" stroke-width="30" fill="none" stroke-linecap="round"/>
+    <circle cx="90" cy="96" r="18" fill="#FF9AB3"/><circle cx="184" cy="76" r="18" fill="#FF9AB3"/><circle cx="140" cy="36" r="20" fill="#FF9AB3"/>
+    <ellipse cx="130" cy="316" rx="90" ry="14" fill="#E8C98E"/>`),
+  'fish.png': () => svg(300, 220, `
+    <path d="M60 110 L8 56 Q0 110 8 164Z" fill="#FF9A3D"/><ellipse cx="170" cy="110" rx="122" ry="78" fill="url(#fb)"/>
+    <path d="M120 40 Q170 10 220 40 Q170 56 120 40Z" fill="#FF7A1A"/><path d="M130 180 Q170 214 210 180 Q170 170 130 180Z" fill="#FF7A1A"/>
+    <path d="M110 70 Q118 110 110 150 M146 60 Q156 110 146 160 M182 60 Q192 110 182 160" stroke="#fff" stroke-width="12" fill="none" opacity="0.75" stroke-linecap="round"/>
+    <circle cx="250" cy="92" r="16" fill="#fff"/><circle cx="254" cy="92" r="8" fill="#1a2a4a"/><path d="M276 124 Q262 134 250 128" stroke="#a8431a" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+    lin('fb', [[0, '#FFC857'], [1, '#FF8A3D']])),
+  'shell.png': () => svg(200, 160, `
+    <ellipse cx="100" cy="152" rx="90" ry="8" fill="#000" opacity="0.18"/>
+    <path d="M20 140 Q10 60 100 20 Q190 60 180 140Z" fill="url(#sh2)"/>
+    <path d="M100 24 V140 M60 40 L52 140 M140 40 L148 140 M30 80 L32 140 M170 80 L168 140" stroke="#fff" stroke-width="5" opacity="0.55" fill="none"/>
+    <circle cx="100" cy="128" r="14" fill="#FFF4E0"/><circle cx="96" cy="124" r="4" fill="#fff"/>`,
+    lin('sh2', [[0, '#FFB7C9'], [1, '#FF7AA0']])),
+  'pumpkin.png': () => svg(260, 220, `
+    <ellipse cx="130" cy="212" rx="112" ry="9" fill="#000" opacity="0.22"/>
+    <ellipse cx="62" cy="130" rx="54" ry="76" fill="#E0701F"/><ellipse cx="198" cy="130" rx="54" ry="76" fill="#E0701F"/>
+    <ellipse cx="96" cy="130" rx="58" ry="80" fill="#F2872E"/><ellipse cx="164" cy="130" rx="58" ry="80" fill="#F2872E"/><ellipse cx="130" cy="130" rx="46" ry="82" fill="#FF9A3D"/>
+    <path d="M130 52 Q126 20 146 8 L156 20 Q140 28 140 54Z" fill="#4F7A3A"/><path d="M150 40 q30 -14 40 8" stroke="#4F7A3A" stroke-width="5" fill="none" stroke-linecap="round"/>`),
 }
 
 // ───────────────────────── 파일로 저장 ─────────────────────────

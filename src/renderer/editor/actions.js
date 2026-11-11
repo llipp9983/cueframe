@@ -255,7 +255,7 @@ export async function saveProject(saveAs = false) {
     layers: sc.layers.map((l) => ({
       ...l,
       mediaPath: l.mediaPath ? abs(l.mediaPath) : null,
-      chat: l.chat ? { ...l.chat, images: l.chat.images.map((i) => ({ ...i, src: abs(i.src) })) } : null,
+      chat: l.chat ? { ...l.chat, bgImage: l.chat.bgImage ? abs(l.chat.bgImage) : '', images: l.chat.images.map((i) => ({ ...i, src: abs(i.src) })) } : null,
     })),
   }))
   st().set({ saving: { done: 0, total: 0 }, notice: '' })

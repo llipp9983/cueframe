@@ -61,6 +61,10 @@ export function getSettings() {
     autoConnectYoutube: r.autoConnectYoutube === true,
     autoYoutubeAsked: r.autoYoutubeAsked === true,
     youtubePollSeconds: Math.min(30, Math.max(5, Math.round(Number(r.youtubePollSeconds) || 5))),
+    autoConnectYtweb: r.autoConnectYtweb === true,
+    ytwebTarget: typeof r.ytwebTarget === 'string' ? r.ytwebTarget.slice(0, 200) : '',
+    autoConnectSoop: r.autoConnectSoop === true,
+    soopTarget: typeof r.soopTarget === 'string' ? r.soopTarget.slice(0, 200) : '',
     lastMediaDir: typeof r.lastMediaDir === 'string' ? r.lastMediaDir : null, // 소품·배경을 마지막으로 고른 폴더
   }
 }

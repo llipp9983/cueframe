@@ -85,6 +85,7 @@ export default function PropsPanel() {
         <SliderRow label="투명도" value={l.opacity} min={0} max={1} step={0.01} onChange={(v) => patchLayer(l.id, { opacity: v }, 'opacity')} fmt={(v) => `${Math.round(v * 100)}%`} />
         {geometry && l.kind !== 'Chat' && l.kind !== 'Widget' && <CheckRow label="비율 유지" value={l.keepAspect} onChange={(v) => patchLayer(l.id, { keepAspect: v })} />}
         {tableLike && <CheckRow label="좌우 반전" value={l.flipX} onChange={(v) => patchLayer(l.id, { flipX: v })} />}
+        <button style={{ marginTop: 4 }} disabled={l.rotation === 0 && l.opacity === 1 && !l.flipX} onClick={() => patchLayer(l.id, { rotation: 0, opacity: 1, flipX: false })} title="회전, 투명도, 좌우 반전을 처음 상태로">모양 초기화</button>
       </Collapse>
 
       <EffectsSection layer={l} />

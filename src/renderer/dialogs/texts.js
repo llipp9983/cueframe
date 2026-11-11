@@ -28,8 +28,8 @@ export const START_GUIDE_STEPS = [
   { title: '화면 구성', body: '왼쪽은 레이어 목록(위가 앞), 가운데는 미리보기, 오른쪽은 고른 요소의 설정입니다. 미리보기에서 요소를 끌어 옮기고, 손잡이로 크기와 회전을 바꿉니다. 이미지 파일을 미리보기로 끌어다 놓아도 추가됩니다.', images: ['editor.png'] },
   { title: '요소 추가하기', body: '왼쪽 아래 [＋ 추가]에서 배경, 테이블, 소품, 채팅창, 문구·시계·카운트다운, 분위기 효과(눈·꽃잎 등), 치지직 위젯을 추가합니다. 소품은 테이블 윗면에 자동으로 붙습니다.', images: ['add-menu.png'] },
   { title: '장면과 방송', body: '위쪽 탭이 장면입니다. "대기 중", "곧 시작"처럼 여러 장면을 만들고 Ctrl+1~9로 바꿉니다. [방송: …]에서 "편집 중인 장면을 바로 방송"을 끄면, 방송에 나가는 장면과 편집하는 장면을 따로 둘 수 있습니다.', images: ['live-menu.png'] },
-  { title: '채팅 연결', body: '화면 오른쪽 아래의 채팅 상태 버튼을 누르면 채팅을 연결하는 창이 열립니다. 위쪽 탭에서 치지직 또는 YouTube를 고르세요. 처음 한 번만 앱 키(YouTube는 구글 인증 정보)를 만들면 됩니다. 연결되면 채팅창에 실제 채팅이 나옵니다. (치지직은 이모티콘 이미지도 표시)', images: ['connect-done.png'] },
-  { title: '출력 창과 OBS', body: '[출력 창 열기]를 누르면 방송용 창이 열립니다. OBS에서 소스 > [창 캡처]로 "방송 출력 창"을 고르세요. 해상도와 장면 전환 방식은 [⚙ 출력 설정]에서 바꿉니다. 자세한 방법은 [도움말] > [OBS 설정 안내]에 있습니다.', images: ['output-settings.png', 'output.jpg'] },
+  { title: '채팅 연결', body: '화면 오른쪽 아래의 채팅 상태 버튼을 누르면 채팅을 연결하는 창이 열립니다. 위쪽 탭에서 치지직, YouTube, SOOP 중 하나를 고르세요. YouTube(간편 연결)와 SOOP은 방송 주소나 ID만 넣으면 되고, 치지직은 처음 한 번 앱 키를 만들어야 합니다. 연결되면 채팅창에 실제 채팅이 나옵니다. (치지직·YouTube는 이모티콘 이미지도 표시)', images: ['connect-done.png'] },
+  { title: '출력 창과 OBS', body: '[출력 창 열기]를 누르면 방송용 창이 열립니다. OBS에서 소스 > [창 캡처]로 "방송 출력 창"을 고르세요. 해상도와 장면 전환 효과(페이드·밀기·줌·흐림·닦아내기)는 [⚙ 출력 설정]에서 바꿉니다. 자세한 방법은 [도움말] > [OBS 설정 안내]에 있습니다.', images: ['output-settings.png', 'output.jpg'] },
 ]
 
 export const ABOUT_TEXT = (info) => `CUEFRAME ${info.version}
@@ -44,6 +44,7 @@ Electron ${info.electron} · Chromium ${info.chrome}
 - Vite (MIT)
 - Zustand (MIT)
 - socket.io-client (MIT)
+- ws (MIT)
 - electron-updater (MIT)
 - fflate (MIT)
 - font-list (MIT)

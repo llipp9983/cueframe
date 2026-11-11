@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
 import { BUILTIN_PRESETS, PRESET_GROUPS } from '../../core/presets.js'
-import { normalizeChatStyle, ANCHORS, ANCHOR_LABEL, PATTERNS, PATTERN_LABEL, SHAPES, SHAPE_LABEL, MAX_IMAGE_ORNAMENTS, MAX_SHAPE_ORNAMENTS } from '../../core/chatStyle.js'
+import { normalizeChatStyle, defaultChatStyle, BG_FITS, BG_FIT_LABEL, ANCHORS, ANCHOR_LABEL, PATTERNS, PATTERN_LABEL, SHAPES, SHAPE_LABEL, MAX_IMAGE_ORNAMENTS, MAX_SHAPE_ORNAMENTS } from '../../core/chatStyle.js'
 import Collapse from './Collapse.jsx'
 import FontSelect from './FontSelect.jsx'
 import { Row, SliderRow, ColorRow, CheckRow, SelectRow, TextRow, Num } from './fields.jsx'
 import { saveUserPreset, deleteUserPreset, exportPresets, importPresets } from './actions.js'
 import { mediaUrl, loadImageInfo } from '../scene/media.js'
 import { fileNameOf } from '../../core/layer.js'
+import { askYesNo } from '../dialogs/dialogStore.js'
 
 const Section = ({ children }) => <div className="section-title">{children}</div>
 
@@ -31,6 +32,14 @@ export default function ChatPanel({ layer }) {
     commit(useStore.getState().layers.map((l) => (l.id === layer.id ? { ...l, chat: normalizeChatStyle(style) } : l)))
   }
   const isUser = sel.startsWith('u:')
+  const reset = async () => {
+    if (!(await askYesNo('이 채팅창의 모든 설정(그림·도형 장식 포함)을 기본값으로 되돌립니다. 되돌리기(Ctrl+Z)로 취소할 수 있습니다.', { warn: true }))) return
+    commit(useStore.getState().layers.map((l) => (l.id === layer.id ? { ...l, chat: normalizeChatStyle(defaultChatStyle()) } : l)))
+  }
+  const pickBg = async () => {
+    const [path] = await api.pickMedia({ kind: 'image' })
+    if (path) patchChat(layer.id, { bgImage: path }, 'bgImage')
+  }
 
   const addImage = async () => {
     if (s.images.length >= MAX_IMAGE_ORNAMENTS) return
@@ -73,6 +82,9 @@ export default function ChatPanel({ layer }) {
         <button onClick={importPresets} title="다른 PC에서 내보낸 프리셋 파일을 불러옵니다">가져오기…</button>
         <button onClick={exportPresets} title="내 프리셋을 파일로 저장합니다">내보내기…</button>
       </div>
+      <div className="row" style={{ marginTop: 6 }}>
+        <button onClick={reset} title="이 채팅창의 모든 설정을 처음 상태로 되돌립니다">기본값으로 초기화</button>
+      </div>
 
       <Collapse id="chat-frame" title="창 틀" defaultOpen={false}>
       <TextRow label="제목" value={s.title} max={40} onChange={set('title')} />
@@ -89,6 +101,15 @@ export default function ChatPanel({ layer }) {
       {co('배경색 (위)', 'bgColor')}
       {co('배경색 (아래)', 'bgColor2')}
       {sl('배경 투명도', 'bgOpacity', 0, 1, 0.01)}
+      <div className="row" style={{ margin: '6px 0' }}>
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.bgImage}>{s.bgImage ? fileNameOf(s.bgImage) : '배경 그림 없음'}</span>
+        <button onClick={pickBg}>{s.bgImage ? '바꾸기…' : '배경 그림…'}</button>
+        {s.bgImage && <button className="ghost" onClick={() => patchChat(layer.id, { bgImage: '' }, 'bgImage')}>지우기</button>}
+      </div>
+      {s.bgImage && (<>
+        <SelectRow label="그림 맞춤" value={s.bgImageFit} options={BG_FITS.map((k) => [k, BG_FIT_LABEL[k]])} onChange={set('bgImageFit')} />
+        {sl('그림 투명도', 'bgImageOpacity', 0, 1, 0.01)}
+      </>)}
       {co('테두리 색', 'borderColor')}
       {sl('테두리 굵기', 'borderWidth', 0, 20)}
       {sl('모서리 둥글기', 'radius', 0, 80)}

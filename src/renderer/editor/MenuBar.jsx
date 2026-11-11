@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
 import { newProject, openProject, saveProject, showObsGuide, showAbout, duplicateSelected, selectAll, flipSelected, deleteSelected } from './actions.js'
-import { inform, showTemplates, showStartGuide } from '../dialogs/dialogStore.js'
+import { inform, askYesNo, showTemplates, showStartGuide } from '../dialogs/dialogStore.js'
 import { fileNameOf } from '../../core/layer.js'
 
 function Menu({ label, mnemonic, items, open, setOpen, id }) {
@@ -28,6 +28,14 @@ function Menu({ label, mnemonic, items, open, setOpen, id }) {
       )}
     </div>
   )
+}
+
+/** 화면 설정(접어 둔 패널, 마지막 폴더, 연결 창 탭 등)만 처음 상태로. 프로젝트·채팅 키·로그인 정보는 건드리지 않는다. */
+async function resetUiPrefs() {
+  if (!(await askYesNo('접어 둔 패널, 마지막으로 연 폴더, 채팅 연결 창의 탭 같은 화면 설정을 처음 상태로 되돌립니다. 프로젝트, 채팅 연결 키, 로그인 정보, 자동 연결 설정은 그대로 둡니다.'))) return
+  for (const k of Object.keys(localStorage).filter((x) => x.startsWith('cueframe.'))) localStorage.removeItem(k)
+  await api.setSettings({ lastMediaDir: null, youtubePollSeconds: 5 })
+  inform('화면 설정을 처음 상태로 되돌렸습니다. 접어 둔 패널은 프로그램을 다시 켜면 반영됩니다.')
 }
 
 export default function MenuBar() {
@@ -84,6 +92,7 @@ export default function MenuBar() {
         { label: '업데이트 확인', run: async () => { const u = await api.update.check(); if (!u || u.state === 'none') inform('지금 쓰는 버전이 최신이거나, 업데이트를 확인하지 못했습니다.') } },
         { label: '로그 내보내기...', run: () => api.exportLog() },
         { label: '로그 폴더 열기', run: () => api.openLogFolder() },
+        { label: '화면 설정 초기화...', run: resetUiPrefs },
         '-',
         { label: '정보', run: showAbout },
       ]} />
