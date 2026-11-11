@@ -3,7 +3,7 @@ import http from 'node:http'
 import crypto from 'node:crypto'
 import { shell } from 'electron'
 import { createRequire } from 'node:module'
-import { secureRead, secureWrite, secureDelete, getSettings } from './store.js'
+import { secureRead, secureWrite, secureDelete, getSettings, setSettings } from './store.js'
 import { info, warn, error } from './log.js'
 
 const require = createRequire(import.meta.url)
@@ -155,6 +155,7 @@ export async function login() {
   }
   storeTokens(r.json.content)
   info('치지직 로그인 성공')
+  if (!getSettings().autoConnectAsked) setSettings({ autoConnectChzzk: true, autoConnectAsked: true }) // 처음 한 번만 자동 연결을 켜 둔다(이후 선택은 존중)
   emit('chzzk:status', getStatus())
   connect()
 }

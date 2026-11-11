@@ -4,7 +4,7 @@ import { Stage, Fit } from '../scene/SceneView.jsx'
 import { corners, handlePoints, hitHandle, hitLayer, resizeLayer, rotationFromPointer, HANDLE_SIZE, center } from '../../core/geometry.js'
 import { referenceTable, surfaceY, snapProps } from '../../core/scene.js'
 import { clamp } from '../../core/layer.js'
-import { dropFiles } from './actions.js'
+import { dropFiles, addBackground, addProps, addChat, addText } from './actions.js'
 import { boxOf, unionBox, snapMove, snapPoint } from '../../core/align.js'
 
 const SEL = '#4aa3ff'
@@ -182,6 +182,26 @@ function Interactive({ scale, w, h }) {
   return <div ref={ref} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ position: 'absolute', inset: 0, width: w, height: h, cursor: 'default', touchAction: 'none' }} />
 }
 
+/** 장면이 비어 있을 때 처음 무엇을 할지 알려 준다 */
+function EmptyHint() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+      <div className="card" style={{ pointerEvents: 'auto', textAlign: 'center', padding: '16px 22px', maxWidth: '86%', background: 'rgba(26,29,32,.92)' }}>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>빈 장면입니다</div>
+        <div className="muted" style={{ fontSize: 12.5, marginBottom: 12, lineHeight: 1.6, whiteSpace: 'normal' }}>
+          이미지나 영상을 이 화면에 끌어다 놓거나, 아래 버튼으로 시작하세요.
+        </div>
+        <div className="row" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="accent" onClick={addBackground}>배경 설정</button>
+          <button onClick={addProps}>소품 추가</button>
+          <button onClick={addChat}>채팅창 추가</button>
+          <button onClick={() => addText('text')}>문구 추가</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // 레이어가 다시 그려지지 않도록 항상 같은 함수를 넘긴다
 const onMedia = (l, ok) => useStore.getState().setMissing(l.id, !ok)
 
@@ -215,6 +235,7 @@ export default function Preview() {
           <Stage layers={layers} projectDir={projectDir} chat={chat} scale={scale} missing={missing} onMedia={onMedia} />
           <Overlay scale={scale} w={w} h={h} />
           <Interactive scale={scale} w={w} h={h} />
+          {layers.length === 0 && <EmptyHint />}
         </>
       )}
     </Fit>

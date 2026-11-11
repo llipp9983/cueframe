@@ -7,6 +7,7 @@ const stub = {
   pathForFile: () => '',
   appInfo: async () => ({ version: '1.0.0', platform: 'browser', electron: '-', chrome: '-', logs: '-' }),
   closeNow: noop,
+  openExternal: noop,
   pickMedia: async () => [],
   message: async () => 0,
   openProject: async () => ({ canceled: true }),

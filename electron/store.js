@@ -57,6 +57,7 @@ export function getSettings() {
   return {
     autoConnectChzzk: r.autoConnectChzzk === true,
     lastProject: typeof r.lastProject === 'string' ? r.lastProject : null,
+    autoConnectAsked: r.autoConnectAsked === true,
     lastMediaDir: typeof r.lastMediaDir === 'string' ? r.lastMediaDir : null, // 소품·배경을 마지막으로 고른 폴더
   }
 }

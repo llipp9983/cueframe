@@ -232,8 +232,10 @@ export default function EditorApp() {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 10, padding: 10 }}>
         <LayerList />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <SceneBar />
-          <AlignBar />
+          <div className="row" style={{ flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center' }}>
+            <SceneBar />
+            <AlignBar />
+          </div>
           <Preview />
         </div>
         <PropsPanel />

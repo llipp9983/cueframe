@@ -39,6 +39,8 @@ export default function PropsPanel() {
   const l = sel[sel.length - 1]
   const geometry = l && l.kind !== 'Background'
   const tableLike = l && (l.kind === 'Prop' || l.kind === 'Table')
+  const isChat = l?.kind === 'Chat'
+  const cid = (id) => (isChat ? `${id}-chat` : id) // 채팅창은 위치·모양을 기본으로 접어 둔다(펼친 상태는 따로 기억)
 
   const body = !l ? (
     <div className="muted">선택한 요소가 없습니다.</div>
@@ -51,8 +53,10 @@ export default function PropsPanel() {
       </div>
       <div className="muted" style={{ marginBottom: 4 }}>{KIND_LABEL[l.kind]}{sel.length > 1 ? ` 외 ${sel.length - 1}개` : ''}</div>
 
+      {isChat && l.chat && <ChatPanel layer={l} />}
+
       {geometry && (
-        <Collapse id="pos" title="위치와 크기">
+        <Collapse id={cid('pos')} title="위치와 크기" defaultOpen={!isChat}>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto 1fr', gap: 6, alignItems: 'center' }}>
             <span>X</span><Num label="X" value={l.x} disabled={l.locked} onChange={(v) => patchLayer(l.id, { x: Math.round(v) }, 'x')} width="100%" />
             <span>Y</span><Num label="Y" value={l.y} disabled={l.locked} onChange={(v) => patchLayer(l.id, { y: Math.round(v) }, 'y')} width="100%" />
@@ -70,7 +74,7 @@ export default function PropsPanel() {
         </Collapse>
       )}
 
-      <Collapse id="shape" title="모양">
+      <Collapse id={cid('shape')} title="모양" defaultOpen={!isChat}>
         {geometry && <SliderRow label="회전 (도)" value={l.rotation} min={0} max={359} onChange={(v) => !l.locked && patchLayer(l.id, { rotation: Math.round(v) % 360 }, 'rotation')} fmt={(v) => `${Math.round(v)}°`} />}
         <SliderRow label="투명도" value={l.opacity} min={0} max={1} step={0.01} onChange={(v) => patchLayer(l.id, { opacity: v }, 'opacity')} fmt={(v) => `${Math.round(v * 100)}%`} />
         {geometry && l.kind !== 'Chat' && l.kind !== 'Widget' && <CheckRow label="비율 유지" value={l.keepAspect} onChange={(v) => patchLayer(l.id, { keepAspect: v })} />}
@@ -95,7 +99,6 @@ export default function PropsPanel() {
       {missing[l.id] && <button style={{ marginTop: 10 }} onClick={() => relink(l.id)}>파일 다시 연결...</button>}
       {l.kind === 'Text' && l.text && <TextPanel layer={l} />}
       {l.kind === 'Widget' && <WidgetPanel layer={l} />}
-      {l.kind === 'Chat' && l.chat && <ChatPanel layer={l} />}
     </>
   )
 

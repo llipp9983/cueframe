@@ -205,6 +205,17 @@ function registerIpc() {
   })
 
   h('app:info', () => ({ version: app.getVersion(), platform: process.platform, electron: process.versions.electron, chrome: process.versions.chrome, logs: logDir() }))
+  // 알려진 치지직 주소만 기본 브라우저로 연다(화면에서 임의의 주소를 열지 못하게)
+  h('app:openExternal', (url) => {
+    let u
+    try {
+      u = new URL(String(url))
+    } catch {
+      throw new Error('올바른 주소가 아닙니다.')
+    }
+    if (u.protocol !== 'https:' || !/(^|.)chzzk.naver.com$/.test(u.hostname)) throw new Error('열 수 없는 주소입니다.')
+    return shell.openExternal(u.toString())
+  })
   h('app:closeNow', () => {
     forceClose = true
     app.quit()

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store.js'
 import Icon from '../theme/Icon.jsx'
+import Pop from './Pop.jsx'
 import { askYesNo } from '../dialogs/dialogStore.js'
 import { MAX_SCENES } from '../../core/project.js'
 
@@ -86,7 +87,7 @@ export default function SceneBar() {
   const active = scenes.find((s) => s.id === activeId)
 
   return (
-    <div className="row" role="tablist" aria-label="장면" style={{ flexWrap: 'wrap', gap: 6 }}>
+    <div className="row" role="tablist" aria-label="장면" style={{ flexWrap: 'wrap', gap: 6, flex: '1 1 auto' }}>
       {scenes.map((sc) => (
         <Tab key={sc.id} scene={sc} active={sc.id === activeId} live={sc.id === effectiveLive} onSelect={switchScene} />
       ))}
@@ -105,11 +106,17 @@ export default function SceneBar() {
       >
         <Icon name="delete" />
       </button>
-      <span style={{ flex: 1 }} />
-      <label className="check" title="켜 두면 편집 중인 장면이 바로 방송에 나갑니다. 끄면 ● 를 눌러 고른 장면만 방송에 나가고, 다른 장면은 방송과 상관없이 편집할 수 있습니다.">
-        <input type="checkbox" checked={liveFollow} onChange={(e) => setLiveFollow(e.target.checked)} />
-        편집 중인 장면을 바로 방송
-      </label>
+      <Pop label={`방송: ${scenes.find((s) => s.id === effectiveLive)?.name ?? ''} ▾`} title="어떤 장면이 방송에 나가는지 정합니다" up={false} minWidth={300} style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ padding: 10 }}>
+          <label className="check">
+            <input type="checkbox" checked={liveFollow} onChange={(e) => setLiveFollow(e.target.checked)} />
+            편집 중인 장면을 바로 방송
+          </label>
+          <div className="muted" style={{ marginTop: 8, whiteSpace: 'normal', lineHeight: 1.6 }}>
+            켜 두면 지금 편집하는 장면이 그대로 방송에 나갑니다. 끄면 장면 탭의 ● 를 눌러 고른 장면만 방송에 나가고, 다른 장면은 방송과 상관없이 편집할 수 있습니다.
+          </div>
+        </div>
+      </Pop>
     </div>
   )
 }

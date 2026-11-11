@@ -73,7 +73,7 @@ export default function ChatPanel({ layer }) {
         <button onClick={exportPresets} title="내 프리셋을 파일로 저장합니다">내보내기…</button>
       </div>
 
-      <Collapse id="chat-frame" title="창 틀" defaultOpen={true}>
+      <Collapse id="chat-frame" title="창 틀" defaultOpen={false}>
       <TextRow label="제목" value={s.title} max={40} onChange={set('title')} />
       {sl('제목 크기', 'titleSize', 10, 80)}
       {co('제목 글자색', 'titleColor')}
@@ -98,7 +98,7 @@ export default function ChatPanel({ layer }) {
       {s.stitch && co('바느질 색', 'stitchColor')}
 
       </Collapse>
-<Collapse id="chat-msg" title="메시지" defaultOpen={true}>
+<Collapse id="chat-msg" title="메시지" defaultOpen={false}>
       {sl('글자 크기', 'fontSize', 10, 80)}
       {co('글자색', 'textColor')}
       {sl('줄 간격', 'lineHeight', 1, 3, 0.05)}

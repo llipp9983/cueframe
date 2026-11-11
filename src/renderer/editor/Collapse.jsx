@@ -10,7 +10,7 @@ const read = () => {
 }
 
 /** 접고 펼 수 있는 구역. 접은 상태는 이 PC에 기억한다. */
-export default function Collapse({ id, title, defaultOpen = true, children }) {
+function CollapseInner({ id, title, defaultOpen = true, children }) {
   const [open, setOpen] = useState(() => {
     const v = read()[id]
     return v === undefined ? defaultOpen : !v
@@ -36,4 +36,9 @@ export default function Collapse({ id, title, defaultOpen = true, children }) {
       {open && children}
     </div>
   )
+}
+
+// id가 바뀌면(다른 종류의 레이어를 골랐을 때) 그 구역의 기억된 상태로 다시 시작한다
+export default function Collapse(props) {
+  return <CollapseInner key={props.id} {...props} />
 }
