@@ -124,7 +124,7 @@ const Message = memo(function Message({ m, s }) {
       )}
       <div style={{ minWidth: 0, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
         {streamer && s.crown && <Shape shape="crown" color="#FFD04A" size={s.nickSize * 0.9} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
-        {streamer && s.platformIcon && <PlatformIcon platform={m.platform} size={s.nickSize * 0.95} />}
+        {s.platformIcon && <PlatformIcon platform={m.platform} size={s.nickSize * 0.95} />}
         <span style={{ color: nickColor, fontSize: s.nickSize, fontWeight: s.nickBold ? 700 : 400 }}>{m.nick}</span>
         {s.nickNewLine ? <br /> : '  '}
         <span>

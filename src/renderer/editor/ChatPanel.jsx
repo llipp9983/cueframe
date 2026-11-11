@@ -151,7 +151,7 @@ export default function ChatPanel({ layer }) {
       {co('방송인 말풍선 색', 'streamerBubbleColor')}
       {ck('방송인 메시지는 오른쪽', 'streamerRight')}
       {ck('방송인 왕관', 'crown')}
-      {ck('방송인 방송 아이콘', 'platformIcon')}
+      {ck('닉네임 앞 방송 아이콘', 'platformIcon')}
 
       </Collapse>
 <Collapse id="chat-show" title="표시 방식" defaultOpen={false}>

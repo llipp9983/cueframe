@@ -69,7 +69,7 @@ export function defaultChatStyle() {
     streamerBubbleColor: '#3A3320',
     streamerRight: true,
     crown: false,
-    platformIcon: true, // 방송인 닉네임 앞에 방송 플랫폼 아이콘
+    platformIcon: true, // 닉네임 앞에 방송 플랫폼 아이콘
     // 표시 방식
     direction: 'bottom-up',
     maxMessages: 12,

@@ -1,7 +1,7 @@
 {
   "name": "cueframe",
   "productName": "CUEFRAME",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "CUEFRAME - 방송 대기화면 편집기",
   "type": "module",
   "main": "electron/main.js",
