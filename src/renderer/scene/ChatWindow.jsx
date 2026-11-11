@@ -65,6 +65,22 @@ function BgImage({ s, projectDir }) {
   )
 }
 
+const PLATFORM_ICON = {
+  chzzk: { bg: '#00FFA3', fg: '#06281C', title: '치지직', d: 'M30 28 H72 V40 H44 V60 H72 V72 H30Z' },
+  youtube: { bg: '#FF0033', fg: '#FFFFFF', title: 'YouTube', d: 'M38 28 L72 50 L38 72Z' },
+  soop: { bg: '#2F6BFF', fg: '#FFFFFF', title: 'SOOP', d: 'M50 26 A24 24 0 1 0 50.1 26Z M50 40 A10 10 0 1 1 49.9 40Z' },
+}
+function PlatformIcon({ platform, size }) {
+  const p = PLATFORM_ICON[platform]
+  if (!p) return null
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={p.title} style={{ verticalAlign: 'middle', marginRight: 5 }}>
+      <rect x="2" y="2" width="96" height="96" rx="24" fill={p.bg} />
+      <path d={p.d} fill={p.fg} fillRule="evenodd" />
+    </svg>
+  )
+}
+
 const Message = memo(function Message({ m, s }) {
   const streamer = m.streamer
   const right = streamer && s.streamerRight
@@ -108,6 +124,7 @@ const Message = memo(function Message({ m, s }) {
       )}
       <div style={{ minWidth: 0, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
         {streamer && s.crown && <Shape shape="crown" color="#FFD04A" size={s.nickSize * 0.9} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
+        {streamer && s.platformIcon && <PlatformIcon platform={m.platform} size={s.nickSize * 0.95} />}
         <span style={{ color: nickColor, fontSize: s.nickSize, fontWeight: s.nickBold ? 700 : 400 }}>{m.nick}</span>
         {s.nickNewLine ? <br /> : '  '}
         <span>

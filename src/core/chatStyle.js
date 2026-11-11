@@ -69,6 +69,7 @@ export function defaultChatStyle() {
     streamerBubbleColor: '#3A3320',
     streamerRight: true,
     crown: false,
+    platformIcon: true, // 방송인 닉네임 앞에 방송 플랫폼 아이콘
     // 표시 방식
     direction: 'bottom-up',
     maxMessages: 12,
@@ -156,6 +157,7 @@ export function normalizeChatStyle(raw) {
     streamerBubbleColor: hex(r.streamerBubbleColor, d.streamerBubbleColor),
     streamerRight: bool(r.streamerRight, d.streamerRight),
     crown: bool(r.crown, d.crown),
+    platformIcon: bool(r.platformIcon, d.platformIcon),
     direction: oneOf(r.direction, ['bottom-up', 'top-down'], d.direction),
     maxMessages: Math.round(clamp(num(r.maxMessages, d.maxMessages), 1, 50)),
     hideSeconds: Math.round(clamp(num(r.hideSeconds, d.hideSeconds), 0, 600)),

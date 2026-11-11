@@ -330,6 +330,7 @@ function openSocket(url, token, my) {
       ...(Object.keys(emojis).length ? { emojis } : {}),
       streamer: d.userRoleCode === 'streamer' || d.profile?.userRoleCode === 'streamer',
       time: Date.now(),
+      platform: 'chzzk',
     })
   })
 }

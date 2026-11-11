@@ -35,6 +35,7 @@ export function nextSampleMessage(now = Date.now()) {
     text: LINES[i % LINES.length],
     ...(LINES[i % LINES.length].includes('{:') ? { emojis: SAMPLE_EMOJIS } : {}),
     streamer,
+    platform: ['chzzk', 'youtube', 'soop'][Math.floor(i / 5) % 3],
     time: now,
   }
 }
