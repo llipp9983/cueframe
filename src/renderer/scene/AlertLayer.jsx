@@ -3,6 +3,7 @@ import { DONATION_LABEL, PLATFORM_ACCENT, alertAccepts, defaultAlert } from '../
 import { splitEmoji } from '../../core/emoji.js'
 import { fontStack } from '../../core/fonts.js'
 import { api } from '../api.js'
+import { playAlert, stopAlert, whenSilent } from './alertSound.js'
 
 const PLATFORM_NAME = { chzzk: '치지직', soop: 'SOOP', youtube: 'YouTube' }
 const STALE_MS = 30000 // 이보다 오래된 후원은 다시 띄우지 않는다(연결할 때 딸려 오는 지난 채팅)
@@ -98,7 +99,10 @@ export default function AlertLayer({ style, chat, live, width, height, preview }
         setQueue((q) => [m, ...q])
         setCur(null)
       }),
-      api.onAlertSkip(() => setCur(null)),
+      api.onAlertSkip(() => {
+        stopAlert()
+        setCur(null)
+      }),
       api.onAlertClearQueue(() => setQueue([])),
     ]
     return () => offs.forEach((f) => f())
@@ -119,13 +123,26 @@ export default function AlertLayer({ style, chat, live, width, height, preview }
     setPhase('in')
   }, [queue, cur, live])
 
+  // 알림이 뜰 때 소리를 낸다(출력 창에서만)
+  useEffect(() => {
+    if (live && cur) playAlert(s, cur)
+  }, [cur]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 정해진 시간이 지나면 사라진다. 읽어 주는 중이면 다 읽을 때까지 기다린다(최대 20초).
   useEffect(() => {
     if (!cur) return
-    const t1 = setTimeout(() => setPhase('out'), s.seconds * 1000)
-    const t2 = setTimeout(() => setCur(null), s.seconds * 1000 + GAP_MS)
+    let off = () => {}
+    let t2
+    const t1 = setTimeout(() => {
+      off = whenSilent(() => {
+        setPhase('out')
+        t2 = setTimeout(() => setCur(null), GAP_MS)
+      })
+    }, s.seconds * 1000)
     return () => {
       clearTimeout(t1)
       clearTimeout(t2)
+      off()
     }
   }, [cur, s.seconds])
 

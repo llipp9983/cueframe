@@ -31,7 +31,7 @@ export function Num({ value, onChange, min = -Infinity, max = Infinity, step = 1
 
 export const Row = ({ label, children, title }) => (
   <div className="row" style={{ minHeight: 30 }} title={title}>
-    <span style={{ width: 110, flex: '0 0 110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+    <span style={{ width: 100, flex: '0 0 100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     {children}
   </div>
 )
@@ -39,8 +39,8 @@ export const Row = ({ label, children, title }) => (
 export function SliderRow({ label, value, min, max, step = 1, onChange, fmt = (v) => String(Math.round(v * 100) / 100) }) {
   return (
     <Row label={label}>
-      <input type="range" aria-label={label} style={{ width: 120 }} min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} />
-      <span style={{ width: 40, textAlign: 'right', color: 'var(--text-muted)' }}>{fmt(value)}</span>
+      <input type="range" aria-label={label} style={{ width: 88 }} min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} />
+      <span style={{ minWidth: 50, whiteSpace: 'nowrap', textAlign: 'right', color: 'var(--text-muted)' }}>{fmt(value)}</span>
     </Row>
   )
 }

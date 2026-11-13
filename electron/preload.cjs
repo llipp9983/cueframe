@@ -101,6 +101,7 @@ contextBridge.exposeInMainWorld('api', {
   onChatMessage: on('chat:message'),
   onOutputState: on('output:state'),
   remote: { open: invoke('remote:open'), close: invoke('remote:close'), isOpen: invoke('remote:isOpen'), get: invoke('remote:get') },
+  donation: { history: invoke('donation:history'), exportCsv: invoke('donation:exportCsv'), openRaw: invoke('donation:openRaw') },
   sendRemoteList: (l) => ipcRenderer.send('remote:list', l),
   onRemoteList: on('remote:list'),
   onRemoteClearList: on('remote:clearList'),

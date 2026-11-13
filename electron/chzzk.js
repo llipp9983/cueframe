@@ -7,6 +7,7 @@ import { secureRead, secureWrite, secureDelete, getSettings, setSettings } from 
 import { info, warn, error } from './log.js'
 import { cleanEmojis, replaceUnknownEmoji } from '../src/core/emoji.js'
 import { donationMessage, wonText } from '../src/core/donation.js'
+import { logRaw } from './donationlog.js'
 
 const require = createRequire(import.meta.url)
 const API = 'https://openapi.chzzk.naver.com'
@@ -305,6 +306,7 @@ function openSocket(url, token, my) {
       if (my !== sessionToken) return
       donationOk = dr.ok
       if (!dr.ok) warn(`치지직 후원 구독 실패 HTTP ${dr.status}`)
+      logRaw('chzzk', 'subscribe-donation', `HTTP ${dr.status} ok=${dr.ok}`)
       subscribed = true
       clearTimeout(subTimer)
       connectedAt = Date.now()
@@ -322,6 +324,7 @@ function openSocket(url, token, my) {
   })
   s.on('DONATION', (raw) => {
     const d = parse(raw)
+    logRaw('chzzk', 'DONATION', raw)
     if (!d) return
     const t = String(d.donationType ?? '').toUpperCase()
     const kind = t.includes('MISSION') ? 'mission' : t.includes('VIDEO') ? 'video' : 'cash'

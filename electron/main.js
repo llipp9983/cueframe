@@ -11,8 +11,9 @@ import * as youtube from './youtube.js'
 import * as ytweb from './ytweb.js'
 import * as soop from './soop.js'
 import * as userTemplates from './templates.js'
-import { openProject, saveProject, isMedia } from './projectIO.js'
+import { openProject, saveProject, isMedia, isAudio } from './projectIO.js'
 import * as updater from './updater.js'
+import * as dlog from './donationlog.js'
 import { fitOutputResize } from '../src/core/outputResize.js'
 import { normalizeOutput } from '../src/core/project.js'
 
@@ -245,6 +246,7 @@ const MEDIA_FILTERS = {
   prop: [{ name: '이미지', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }],
   image: [{ name: '이미지', extensions: ['png', 'jpg', 'jpeg'] }],
   any: [{ name: '이미지·영상', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'webm'] }],
+  sound: [{ name: '소리', extensions: ['mp3', 'wav', 'ogg', 'm4a'] }],
 }
 
 // 이 프로그램의 편집기·출력 창에서 온 요청인지(위젯 같은 다른 화면이 채널을 두드리지 못하게)
@@ -295,7 +297,7 @@ function registerIpc() {
       defaultPath: last && fs.existsSync(last) ? last : undefined,
     })
     if (r.canceled) return []
-    const files = r.filePaths.filter(isMedia)
+    const files = r.filePaths.filter(kind === 'sound' ? isAudio : isMedia)
     if (files[0]) store.setSettings({ lastMediaDir: path.dirname(files[0]) })
     return files
   })
@@ -489,8 +491,26 @@ function registerIpc() {
   })
   ipcMain.on('remote:skip', (e) => from(remote, e) && send(output, 'alert:skip'))
   ipcMain.on('remote:clearQueue', (e) => from(remote, e) && send(output, 'alert:clearQueue'))
+  // 저장된 후원 기록: 편집기만 읽고 내보낸다(닉네임·후원 내용이 들어 있다)
+  h('donation:history', () => dlog.readDonations({ trim: true }).slice(-300))
+  h('donation:exportCsv', async () => {
+    const list = dlog.readDonations()
+    if (!list.length) return { ok: false, empty: true }
+    const d = new Date()
+    const p2 = (n) => String(n).padStart(2, '0')
+    const r = await dialog.showSaveDialog(editor, { title: '후원 기록 내보내기', defaultPath: `후원기록-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}.csv`, filters: [{ name: 'CSV (엑셀)', extensions: ['csv'] }] })
+    if (r.canceled || !r.filePath) return { ok: false }
+    fs.writeFileSync(r.filePath, dlog.toCsv(list), 'utf8')
+    return { ok: true, count: list.length }
+  })
+  h('donation:openRaw', () => {
+    const f = dlog.rawFile()
+    if (fs.existsSync(f)) shell.showItemInFolder(f)
+    else shell.openPath(path.dirname(f))
+  })
   ipcMain.on('remote:clearList', (e) => {
     if (!from(remote, e)) return
+    dlog.clearDonations()
     remoteList = []
     send(remote, 'remote:list', remoteList)
     send(editor, 'remote:clearList')
@@ -585,7 +605,7 @@ app.whenReady().then(() => {
     try {
       const u = new URL(req.url)
       const file = decodeURIComponent(u.pathname.slice(1))
-      if (!path.isAbsolute(file) || /^[\\/]{2}/.test(file) || !/^[A-Za-z]:[\\/]/.test(file) || file.includes('\0') || !/\.(png|jpe?g|gif|webp|bmp|mp4|webm|m4v|mov)$/i.test(file)) return new Response('forbidden', { status: 403 })
+      if (!path.isAbsolute(file) || /^[\\/]{2}/.test(file) || !/^[A-Za-z]:[\\/]/.test(file) || file.includes('\0') || !/\.(png|jpe?g|gif|webp|bmp|mp4|webm|m4v|mov|mp3|wav|ogg|m4a)$/i.test(file)) return new Response('forbidden', { status: 403 })
       const r = await net.fetch(pathToFileURL(file).toString(), { headers: req.headers, bypassCustomProtocolHandlers: true })
       const headers = new Headers(r.headers)
       headers.set('Access-Control-Allow-Origin', '*') // 캔버스로 투명도를 분석하려면 필요
@@ -596,18 +616,19 @@ app.whenReady().then(() => {
     }
   })
 
-  chzzk.init((ch, data) => {
+  // 네 곳(치지직·YouTube 둘·SOOP)의 채팅이 여기를 지난다: 후원이면 기록 파일에도 남긴다
+  const fromChat = (ch, data) => {
+    if (ch === 'chat:message' && data?.donation) {
+      dlog.logRaw(data.platform, 'mapped', data)
+      dlog.saveDonation(data)
+    }
     send(editor, ch, data)
-  })
-  youtube.init((ch, data) => {
-    send(editor, ch, data)
-  })
-  ytweb.init((ch, data) => {
-    send(editor, ch, data)
-  })
-  soop.init((ch, data) => {
-    send(editor, ch, data)
-  })
+  }
+  if (TEST_DATA) globalThis.__cueframeEmitChat = (m) => fromChat('chat:message', m) // 시험용(--inspect로 연결해 부른다)
+  chzzk.init(fromChat)
+  youtube.init(fromChat)
+  ytweb.init(fromChat)
+  soop.init(fromChat)
   updater.init((ch, data) => send(editor, ch, data), { beforeInstall: () => { forceClose = true } })
   registerIpc()
   createEditor()

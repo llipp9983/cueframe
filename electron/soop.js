@@ -4,6 +4,8 @@ import { app } from 'electron'
 import WebSocket from 'ws'
 import { getSettings, setSettings } from './store.js'
 import { info, warn } from './log.js'
+import { logRaw } from './donationlog.js'
+const DONATION_CODES = new Set(['0018', '0087', '0105', '0121', '0125'])
 import { parseSoopTarget, parseBno, parseChannelInfo, soopWsUrl, connectPacket, joinPacket, pingPacket, parseFrame, mapSoopFrames, CMD } from '../src/core/soop.js'
 
 const TEST = !app.isPackaged && process.env.CUEFRAME_TEST === '1'
@@ -139,6 +141,7 @@ async function start(id) {
         info(`SOOP 채팅 연결: ${id}`)
         setStatus('connected', `연결됨 · ${(title || id).slice(0, 28)}`)
       }
+      if (DONATION_CODES.has(fr.code)) logRaw('soop', `code ${fr.code}`, fr.fields)
       for (const m of mapSoopFrames(fr, { bjId: ci.bjId, now: Date.now(), seq: seq++ })) emit('chat:message', m)
     })
     w.on('close', () => {

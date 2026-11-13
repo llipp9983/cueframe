@@ -8,6 +8,7 @@ import { error, warn } from './log.js'
 
 const MEDIA_EXT = /\.(png|jpe?g|gif|webp|bmp|mp4|webm|m4v|mov)$/i
 export const isMedia = (p) => MEDIA_EXT.test(p)
+export const isAudio = (p) => /\.(mp3|wav|ogg|m4a)$/i.test(p) // 후원 알림 소리
 
 export function openProject(dir) {
   const file = path.join(dir, 'project.json')

@@ -66,14 +66,16 @@ export function getSettings() {
     autoConnectSoop: r.autoConnectSoop === true,
     soopTarget: typeof r.soopTarget === 'string' ? r.soopTarget.slice(0, 200) : '',
     lastMediaDir: typeof r.lastMediaDir === 'string' ? r.lastMediaDir : null, // 소품·배경을 마지막으로 고른 폴더
+    donationDebug: r.donationDebug === true, // 받은 후원 원본을 로그 파일에 남김(문제 확인용)
+    saveDonations: r.saveDonations !== false, // 후원 기록을 파일에 저장해 다음 실행 때도 보여 줌
   }
 }
 // 화면(렌더러)에서 바꿀 수 있는 설정 항목. 나머지(마지막 프로젝트, 연결 대상 등)는 메인 프로세스만 정한다.
-const EDITABLE = ['autoConnectChzzk', 'autoConnectAsked', 'autoConnectYoutube', 'autoYoutubeAsked', 'autoConnectYtweb', 'autoConnectSoop', 'youtubePollSeconds', 'lastMediaDir']
+const EDITABLE = ['autoConnectChzzk', 'autoConnectAsked', 'autoConnectYoutube', 'autoYoutubeAsked', 'autoConnectYtweb', 'autoConnectSoop', 'youtubePollSeconds', 'lastMediaDir', 'donationDebug', 'saveDonations']
 export function cleanSettingsPatch(patch) {
   const p = patch && typeof patch === 'object' ? patch : {}
   const out = {}
-  for (const k of EDITABLE) if (k in p) out[k] = k === 'lastMediaDir' ? (typeof p[k] === 'string' || p[k] === null ? p[k] : null) : p[k]
+  for (const k of EDITABLE) if (k in p) out[k] = k === 'lastMediaDir' ? (typeof p[k] === 'string' || p[k] === null ? p[k] : null) : k === 'donationDebug' || k === 'saveDonations' ? p[k] === true : p[k]
   return out
 }
 export function setSettings(patch) {

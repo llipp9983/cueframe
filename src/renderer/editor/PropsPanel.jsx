@@ -49,7 +49,9 @@ export default function PropsPanel() {
   const geometry = l && l.kind !== 'Background'
   const tableLike = l && (l.kind === 'Prop' || l.kind === 'Table')
   const isChat = l?.kind === 'Chat'
-  const cid = (id) => (isChat ? `${id}-chat` : id) // 채팅창은 위치·모양을 기본으로 접어 둔다(펼친 상태는 따로 기억)
+  const isAlert = l?.kind === 'Alert'
+  const lead = isChat || isAlert // 전용 설정이 맨 위에 오는 요소: 위치·모양은 기본으로 접어 둔다
+  const cid = (id) => (isChat ? `${id}-chat` : isAlert ? `${id}-alert` : id) // 펼친 상태는 따로 기억
 
   const body = !l ? (
     <div className="muted">선택한 요소가 없습니다.</div>
@@ -83,7 +85,9 @@ export default function PropsPanel() {
         </Collapse>
       )}
 
-      <Collapse id={cid('shape')} title="모양" defaultOpen={!isChat}>
+      {isAlert && l.alert && <AlertPanel layer={l} />}
+
+      <Collapse id={cid('shape')} title="모양" defaultOpen={!lead}>
         {geometry && <SliderRow label="회전 (도)" value={l.rotation} min={0} max={359} onChange={(v) => !l.locked && patchLayer(l.id, { rotation: Math.round(v) % 360 }, 'rotation')} fmt={(v) => `${Math.round(v)}°`} />}
         <SliderRow label="투명도" value={l.opacity} min={0} max={1} step={0.01} onChange={(v) => patchLayer(l.id, { opacity: v }, 'opacity')} fmt={(v) => `${Math.round(v * 100)}%`} />
         {geometry && l.kind !== 'Chat' && l.kind !== 'Widget' && l.kind !== 'Alert' && <CheckRow label="비율 유지" value={l.keepAspect} onChange={(v) => patchLayer(l.id, { keepAspect: v })} />}
@@ -110,7 +114,6 @@ export default function PropsPanel() {
       {l.kind === 'Particles' && l.particles && <ParticlesPanel layer={l} />}
       {l.kind === 'Text' && l.text && <TextPanel layer={l} />}
       {l.kind === 'Widget' && <WidgetPanel layer={l} />}
-      {l.kind === 'Alert' && l.alert && <AlertPanel layer={l} />}
     </>
   )
 

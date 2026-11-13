@@ -96,8 +96,8 @@ export default function BottomBars() {
             <PopItem close={close} label="카운트다운" hint="방송까지 남은 시간" onClick={() => addText('countdown')} />
             <div className="menu-sep" />
             <PopItem close={close} label="분위기 효과" hint="눈·꽃잎·별 떨어짐" onClick={() => addParticles('snow')} />
-            <PopItem close={close} label="후원 알림 추가" hint="치지직·SOOP·YouTube" onClick={addAlert} />
-            <PopItem close={close} label="치지직 위젯…" hint="후원 알림·영상 후원" onClick={addWidget} />
+            <PopItem close={close} label="후원 알림 칸" hint="자동으로 표시" onClick={addAlert} />
+            <PopItem close={close} label="위젯 주소 넣기…" hint="치지직·SOOP 위젯" onClick={addWidget} />
           </>
         )}
       </Pop>
@@ -113,14 +113,15 @@ export default function BottomBars() {
       {missingCount > 0 && (
         <span style={{ ...chip(true), borderColor: 'var(--warn)', color: 'var(--warn)' }} title="읽지 못한 파일이 있는 레이어는 목록에서 ⚠로 표시됩니다">⚠ 파일 {missingCount}개 없음</span>
       )}
-      <span style={chip(outputOpen)} title="방송 출력 창이 열려 있는지"><Dot color={outputOpen ? 'var(--ok)' : 'var(--text-disabled)'} />출력 창 {outputOpen ? '열림' : '닫힘'}</span>
 
       <button className="ghost" style={{ ...chip(list.some((p) => isLive(p.s)) || sampleChat), cursor: 'pointer' }} title={`${sampleChat ? '샘플 채팅이 나오는 중입니다' : `치지직: ${chzzk.text} / YouTube: ${ytweb.state !== 'disconnected' ? ytweb.text : youtube.text} / SOOP: ${soop.text}`} — 눌러서 채팅 연결 설정`} onClick={showConnect}>
         <Dot color={dot} />{label}
       </button>
-      <Pop label="⋯" ariaLabel="채팅 도구" title="샘플 채팅, 채팅 비우기" className="icon" minWidth={200} right>
+      <Pop label="도구 ▾" ariaLabel="도구" title="후원 리모컨, 샘플 채팅, 채팅 비우기" minWidth={210} right>
         {(close) => (
           <>
+            <PopItem close={close} label="후원 리모컨 열기" hint="기록·다시 띄우기" onClick={() => api.remote.open()} />
+            <div className="menu-sep" />
             <label className="menu-item" style={{ cursor: 'pointer' }}>
               <span>샘플 채팅 보기</span>
               <input type="checkbox" checked={sampleChat} onChange={(e) => toggleSample(e.target.checked)} />
@@ -172,8 +173,11 @@ export default function BottomBars() {
           <label className="check"><input type="checkbox" checked={diag} onChange={(e) => set({ diag: e.target.checked })} />진단 표시 (출력 창에 fps)</label>
         </div>
       </Pop>
-      <button onClick={() => api.remote.open()} title="후원이 들어온 기록을 보고, 더블클릭으로 다시 띄웁니다">후원 리모컨</button>
-      <button className="accent" onClick={() => api.openOutput({ ...output })}>출력 창 열기</button>
+      {outputOpen ? (
+        <button style={{ minWidth: 112 }} onClick={() => api.closeOutput()} title="방송 출력 창이 열려 있습니다. 누르면 닫습니다"><Dot color="var(--ok)" />&nbsp;출력 중 · 닫기</button>
+      ) : (
+        <button className="accent" style={{ minWidth: 112 }} onClick={() => api.openOutput({ ...output })} title="방송에 나갈 출력 창을 엽니다">출력 창 열기</button>
+      )}
     </div>
   )
 }

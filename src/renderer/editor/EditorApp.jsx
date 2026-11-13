@@ -47,6 +47,13 @@ export default function EditorApp() {
     api.ytweb.status().then((y) => s.set({ ytweb: y }))
     api.soop.status().then((y) => s.set({ soop: y }))
     api.update.state().then((u) => s.set({ update: u }))
+    // 지난 실행에서 저장해 둔 후원 기록(그 사이 새로 들어온 후원은 그대로 뒤에 둔다)
+    api.donation.history().then((old) => {
+      if (!Array.isArray(old) || !old.length) return
+      const cur = useStore.getState().donations
+      const ids = new Set(cur.map((m) => m.id))
+      s.set({ donations: [...old.filter((m) => !ids.has(m.id)), ...cur].slice(-300) })
+    })
     api.outputIsOpen().then((o) => s.set({ outputOpen: !!o }))
     ;(async () => {
       const recovered = await offerRecovery()

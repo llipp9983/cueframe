@@ -61,30 +61,34 @@ export default function ChatPanel({ layer }) {
     <div>
       <Section>채팅창 설정</Section>
       <div className="muted" style={{ marginBottom: 4 }}>프리셋 (★ = 내가 저장한 것)</div>
-      <select aria-label="프리셋" value={sel} onChange={(e) => setSel(e.target.value)} style={{ width: '100%' }}>
-        {PRESET_GROUPS.map((g) => (
-          <optgroup key={g} label={g}>
-            {BUILTIN_PRESETS.map((p, i) => (p.group === g ? <option key={i} value={`b:${i}`}>{p.name}</option> : null))}
-          </optgroup>
-        ))}
-        {userPresets.length > 0 && (
-          <optgroup label="내 프리셋">
-            {userPresets.map((p) => <option key={p.name} value={`u:${p.name}`}>★ {p.name}</option>)}
-          </optgroup>
-        )}
-      </select>
-      <div className="row" style={{ marginTop: 6, flexWrap: 'wrap' }}>
-        <button onClick={apply}>적용</button>
-        <button onClick={async () => { const n = await saveUserPreset(layer.id); if (n) setSel(`u:${n}`) }}>현재 설정 저장…</button>
-        <button disabled={!isUser} onClick={async () => { await deleteUserPreset(sel.slice(2)); setSel('b:0') }}>삭제</button>
+      <div className="row" style={{ gap: 6 }}>
+        <select aria-label="프리셋" value={sel} onChange={(e) => setSel(e.target.value)} style={{ flex: 1, minWidth: 0 }}>
+          {PRESET_GROUPS.map((g) => (
+            <optgroup key={g} label={g}>
+              {BUILTIN_PRESETS.map((p, i) => (p.group === g ? <option key={i} value={`b:${i}`}>{p.name}</option> : null))}
+            </optgroup>
+          ))}
+          {userPresets.length > 0 && (
+            <optgroup label="내 프리셋">
+              {userPresets.map((p) => <option key={p.name} value={`u:${p.name}`}>★ {p.name}</option>)}
+            </optgroup>
+          )}
+        </select>
+        <button className="accent" onClick={apply} title="고른 프리셋을 이 채팅창에 적용합니다">적용</button>
       </div>
-      <div className="row" style={{ marginTop: 6 }}>
-        <button onClick={importPresets} title="다른 PC에서 내보낸 프리셋 파일을 불러옵니다">가져오기…</button>
-        <button onClick={exportPresets} title="내 프리셋을 파일로 저장합니다">내보내기…</button>
-      </div>
-      <div className="row" style={{ marginTop: 6 }}>
-        <button onClick={reset} title="이 채팅창의 모든 설정을 처음 상태로 되돌립니다">기본값으로 초기화</button>
-      </div>
+      <Collapse id="chat-preset-manage" title="프리셋 저장·관리" defaultOpen={false}>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <button onClick={async () => { const n = await saveUserPreset(layer.id); if (n) setSel(`u:${n}`) }}>현재 설정 저장…</button>
+          <button disabled={!isUser} onClick={async () => { await deleteUserPreset(sel.slice(2)); setSel('b:0') }}>삭제</button>
+        </div>
+        <div className="row" style={{ marginTop: 6, flexWrap: 'wrap' }}>
+          <button onClick={importPresets} title="다른 PC에서 내보낸 프리셋 파일을 불러옵니다">가져오기…</button>
+          <button onClick={exportPresets} title="내 프리셋을 파일로 저장합니다">내보내기…</button>
+        </div>
+        <div className="row" style={{ marginTop: 6 }}>
+          <button onClick={reset} title="이 채팅창의 모든 설정을 처음 상태로 되돌립니다">기본값으로 초기화</button>
+        </div>
+      </Collapse>
 
       <Collapse id="chat-frame" title="창 틀" defaultOpen={false}>
       <TextRow label="제목" value={s.title} max={40} onChange={set('title')} />

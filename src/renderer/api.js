@@ -29,6 +29,7 @@ const stub = {
   autosave: { write: noop, read: async () => null, clear: noop },
   onWidgetsChanged: unsub,
   remote: { open: noop, close: noop, isOpen: async () => false, get: async () => ({ list: [], now: null, outputOpen: false }) },
+  donation: { history: async () => [], exportCsv: async () => ({ ok: false }), openRaw: noop },
   sendRemoteList: () => {},
   onRemoteList: unsub,
   onRemoteClearList: unsub,

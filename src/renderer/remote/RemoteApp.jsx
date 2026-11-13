@@ -92,24 +92,23 @@ export default function RemoteApp() {
             {now === null && !outputOpen ? '출력 창이 닫혀 있거나 알림 칸이 없습니다.' : '지금 나오는 알림이 없습니다.'}
           </div>
         )}
-        <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
-          <span className="muted">대기 {now?.queue ?? 0}개</span>
-          <span style={{ flex: 1 }} />
-          <button disabled={!current} onClick={() => api.remoteSkip()} title="지금 나오는 알림을 바로 끝내고 다음으로">지금 알림 넘기기</button>
-          <button disabled={!now?.queue} onClick={() => api.remoteClearQueue()} title="기다리는 알림을 모두 지웁니다">대기 비우기</button>
+        {/* 자주 쓰는 "넘기기"는 크게, 되돌릴 수 없는 "대기 비우기"는 멀리 떨어뜨려 잘못 누르지 않게 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          <button className="accent" style={{ flex: 1, minHeight: 36, fontWeight: 700 }} disabled={!current} onClick={() => api.remoteSkip()} title="지금 나오는 알림을 바로 끝내고 다음으로">지금 알림 넘기기</button>
+          <span className="muted" style={{ whiteSpace: 'nowrap' }}>대기 {now?.queue ?? 0}개</span>
+          <button className="ghost" style={{ minHeight: 36, marginLeft: 16 }} disabled={!now?.queue} onClick={() => api.remoteClearQueue()} title="기다리는 알림을 모두 지웁니다">대기 비우기</button>
         </div>
       </div>
 
       <div style={{ padding: '8px 10px 4px', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
         <strong style={{ marginRight: 6 }}>후원 기록</strong>
         {FILTERS.map(([k, label]) => (
-          <button key={k} className={filter === k ? 'accent' : ''} style={{ minHeight: 24, padding: '0 8px' }} onClick={() => setFilter(k)}>{label}</button>
+          <button key={k} className={filter === k ? 'accent' : ''} style={{ minHeight: 30, padding: '0 10px' }} onClick={() => setFilter(k)}>{label}</button>
         ))}
-        <span style={{ flex: 1 }} />
-        <button className="ghost" style={{ minHeight: 24, padding: '0 8px' }} disabled={!list.length} onClick={() => api.remoteClearList()}>기록 지우기</button>
       </div>
-      <div className="muted" style={{ padding: '0 10px 6px' }}>
-        {flash || '더블클릭하면 그 후원을 출력 창에 다시 띄웁니다.'}
+      <div style={{ padding: '0 10px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className="muted" style={{ flex: 1, whiteSpace: 'normal' }}>{flash || '[다시 띄우기] 버튼 또는 더블클릭으로 출력 창에 다시 띄웁니다.'}</span>
+        <button className="ghost" style={{ minHeight: 26, padding: '0 8px', whiteSpace: 'nowrap' }} disabled={!list.length} title="저장해 둔 후원 기록도 함께 지웁니다" onClick={() => window.confirm('저장해 둔 후원 기록도 함께 지웁니다. 지울까요?') && api.remoteClearList()}>기록 지우기</button>
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: '0 8px 8px' }}>
@@ -122,8 +121,9 @@ export default function RemoteApp() {
               key={m.id}
               onDoubleClick={() => show(m)}
               title="더블클릭: 출력 창에 다시 띄우기"
-              style={{ border: `1px solid ${live ? c : 'var(--border)'}`, boxShadow: live ? `0 0 0 1px ${c}` : 'none', background: live ? 'var(--accent-soft)' : 'var(--bg2)', borderRadius: 6, padding: '6px 8px', marginBottom: 6, cursor: 'pointer', userSelect: 'none' }}
+              style={{ display: 'flex', alignItems: 'stretch', gap: 8, border: `1px solid ${live ? c : 'var(--border)'}`, boxShadow: live ? `0 0 0 1px ${c}` : 'none', background: live ? 'var(--accent-soft)' : 'var(--bg2)', borderRadius: 6, padding: '6px 8px', marginBottom: 6, cursor: 'pointer', userSelect: 'none' }}
             >
+              <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Chip platform={m.platform} />
                 <span style={{ color: 'var(--text-muted)' }}>{DONATION_LABEL[m.donation.kind]}</span>
@@ -139,6 +139,9 @@ export default function RemoteApp() {
                   {m.donation.title} <Text m={m} />
                 </div>
               )}
+              </div>
+              {/* 더블클릭은 정확한 두 번 클릭이 필요하니, 한 번에 누르는 큰 버튼도 둔다(오른쪽 끝, 줄 전체 높이) */}
+              <button className={live ? '' : 'accent'} style={{ width: 64, minHeight: 44, alignSelf: 'center', fontWeight: 700, padding: 0 }} onClick={(e) => { e.stopPropagation(); show(m) }} onDoubleClick={(e) => e.stopPropagation()} title="이 후원을 출력 창에 다시 띄우기">다시<br />띄우기</button>
             </div>
           )
         })}
