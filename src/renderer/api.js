@@ -9,6 +9,7 @@ const stub = {
   closeNow: noop,
   openExternal: noop,
   templatesDir: async () => '',
+  templates: { listUser: async () => ({ dir: '', items: [] }), importFile: noop, exportFile: noop, saveFromProject: noop, remove: noop },
   listFonts: async () => ['Arial', 'Malgun Gothic', 'Segoe UI'],
   pickMedia: async () => [],
   message: async () => 0,

@@ -86,7 +86,9 @@ async function start(t) {
     const target = TEST ? t.url.replace('https://www.youtube.com', BASE) : t.url
     const res = await fetch(target, { headers: HEADERS, redirect: 'follow' })
     if (my !== session) return
-    const page = parseWatchPage(await res.text())
+    const html = await res.text()
+    if (html.length > 12 * 1024 * 1024) throw new Error('응답이 너무 큽니다')
+    const page = parseWatchPage(html)
     if (page.error) {
       // 방송이 아직 없거나 끝난 경우는 계속 다시 확인한다(채널 주소로 연결했다면 방송 시작을 기다릴 수 있다)
       if (page.error.code === 'nolive' || page.error.code === 'nochat') {

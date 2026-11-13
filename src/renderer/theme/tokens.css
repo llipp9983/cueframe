@@ -81,6 +81,55 @@ body {
     transform: translateY(calc(var(--amp) * -1px));
   }
 }
+@keyframes cf-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@keyframes cf-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  18% {
+    opacity: var(--lo);
+  }
+  34% {
+    opacity: 1;
+  }
+  52% {
+    opacity: calc(var(--lo) + (1 - var(--lo)) * 0.5);
+  }
+  70% {
+    opacity: var(--lo);
+  }
+  86% {
+    opacity: 0.95;
+  }
+}
+@keyframes cf-tile-in {
+  from {
+    opacity: 0;
+    transform: rotate(var(--rot)) scale(0.05);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--rot)) scale(1.16);
+  }
+}
+@keyframes cf-tile-out {
+  from {
+    opacity: 1;
+    transform: rotate(var(--rot)) scale(1.16);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--rot)) scale(0.05);
+  }
+}
 @keyframes cf-sway {
   0%,
   100% {

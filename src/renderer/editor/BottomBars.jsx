@@ -5,7 +5,8 @@ import Pop, { PopItem } from './Pop.jsx'
 import { addBackground, addTable, addProps, addChat, addText, addWidget, addParticles } from './actions.js'
 import { showConnect } from '../dialogs/dialogStore.js'
 import { RESOLUTIONS } from '../../core/project.js'
-import { TRANSITIONS } from '../../core/transitions.js'
+import { TRANSITIONS, MAX_TRANSITION_IMAGES } from '../../core/transitions.js'
+import { fileNameOf } from '../../core/layer.js'
 
 const DOT = { connected: 'var(--ok)', connecting: 'var(--warn)', retry: 'var(--warn)', error: 'var(--error)', needLogin: 'var(--error)', disconnected: 'var(--text-disabled)' }
 
@@ -143,6 +144,29 @@ export default function BottomBars() {
           <select id="o-tr" value={output.transition ?? 'fade'} onChange={(e) => changeOutput({ transition: e.target.value })}>
             {TRANSITIONS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
+          {output.transition === 'photo' && (
+            <>
+              <span />
+              <div style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+                <div className="muted" style={{ whiteSpace: 'normal', lineHeight: 1.5 }}>고른 사진이 칸마다 왼쪽 위부터 차례로 나타나 화면을 가득 채운 뒤, 장면이 바뀌면 같은 순서로 사라집니다. 사진이 없으면 색 칸이 나옵니다.</div>
+                {(output.transitionImages ?? []).map((p, i) => (
+                  <div key={p + i} className="row" style={{ justifyContent: 'space-between', gap: 6 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p}>{fileNameOf(p)}</span>
+                    <button className="ghost" aria-label={`${fileNameOf(p)} 빼기`} onClick={() => changeOutput({ transitionImages: output.transitionImages.filter((_, j) => j !== i) })}>×</button>
+                  </div>
+                ))}
+                <button
+                  disabled={(output.transitionImages ?? []).length >= MAX_TRANSITION_IMAGES}
+                  onClick={async () => {
+                    const picked = await api.pickMedia({ kind: 'image', multi: true })
+                    if (picked.length) changeOutput({ transitionImages: [...(output.transitionImages ?? []), ...picked].slice(0, MAX_TRANSITION_IMAGES) })
+                  }}
+                >
+                  사진 고르기… ({(output.transitionImages ?? []).length}/{MAX_TRANSITION_IMAGES})
+                </button>
+              </div>
+            </>
+          )}
           <span />
           <label className="check"><input type="checkbox" checked={diag} onChange={(e) => set({ diag: e.target.checked })} />진단 표시 (출력 창에 fps)</label>
         </div>

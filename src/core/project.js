@@ -1,12 +1,12 @@
 // project.json 읽기·쓰기 규칙. 읽기는 절대 실패로 끝나지 않는다(더 새 버전만 예외).
 // 장면이 여러 개여도 첫 장면은 예전 형식의 `layers`에도 같이 적어, 이전 버전이 열 수 있게 한다.
-import { MAX_LAYERS, normalizeLayer, newId } from './layer.js'
+import { MAX_LAYERS, normalizeLayer, newId, isSafeRelativePath } from './layer.js'
 import { normalizeChatStyle } from './chatStyle.js'
 import { normalizeTextStyle } from './textStyle.js'
 import { normalizeFx } from './fx.js'
 import { normalizeParticles } from './particles.js'
 import { clamp, num } from './util.js'
-import { isTransition } from './transitions.js'
+import { isTransition, MAX_TRANSITION_IMAGES } from './transitions.js'
 
 export const PROJECT_VERSION = 1
 export const MAX_SCENES = 20
@@ -32,17 +32,22 @@ export function emptyProject(name = '제목 없음') {
   return {
     version: PROJECT_VERSION,
     name,
-    output: { width: 1920, height: 1080, fps: 30, transition: 'fade' },
+    output: { width: 1920, height: 1080, fps: 30, transition: 'fade', transitionImages: [] },
     scenes: [scene],
     activeSceneId: scene.id,
     layers: scene.layers,
   }
 }
 
-export function normalizeOutput(o) {
+export function normalizeOutput(o, { fromDisk = false } = {}) {
   const r = o && typeof o === 'object' ? o : {}
   const res = RESOLUTIONS.find((x) => x.width === r.width && x.height === r.height) ?? RESOLUTIONS[0]
-  return { width: res.width, height: res.height, fps: r.fps === 60 ? 60 : 30, transition: isTransition(r.transition) ? r.transition : 'fade' }
+  return { width: res.width, height: res.height, fps: r.fps === 60 ? 60 : 30, transition: isTransition(r.transition) ? r.transition : 'fade',
+    // 사진 전환에 쓰는 사진(최대 6장). 디스크에서 읽을 때는 프로젝트 안의 상대 경로만 받는다
+    transitionImages: (Array.isArray(r.transitionImages) ? r.transitionImages : [])
+      .filter((p) => typeof p === 'string' && p && p.length <= 600 && (!fromDisk || isSafeRelativePath(p)))
+      .slice(0, MAX_TRANSITION_IMAGES),
+  }
 }
 
 /** 레이어 배열 하나(장면 하나)를 정리한다. 배경·채팅창은 하나만, 같은 id는 새로 만든다. */
@@ -75,6 +80,7 @@ export function normalizeLayers(src, { fromDisk = true } = {}) {
       }
       hasChat = true
       l.chat = normalizeChatStyle(l.chat)
+      if (fromDisk) l.chat = { ...l.chat, bgImage: isSafeRelativePath(l.chat.bgImage) ? l.chat.bgImage : '', images: l.chat.images.filter((i) => isSafeRelativePath(i.src)) }
     }
     if (ids.has(l.id)) l.id = newId()
     ids.add(l.id)
@@ -111,7 +117,7 @@ export function parseProject(text, { fromDisk = true } = {}) {
   const project = {
     version: PROJECT_VERSION,
     name: typeof data.name === 'string' && data.name ? data.name.slice(0, 100) : '제목 없음',
-    output: normalizeOutput(data.output),
+    output: normalizeOutput(data.output, { fromDisk: true }),
     scenes,
     activeSceneId,
     layers: scenes.find((s) => s.id === activeSceneId).layers,

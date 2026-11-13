@@ -7,6 +7,10 @@ export const BUNDLED_FONTS = [
   { name: 'Black Han Sans', label: '블랙 한 산스 (굵은 제목)' },
   { name: 'Do Hyeon', label: '도현 (또렷한 제목)' },
   { name: 'Gowun Dodum', label: '고운돋움 (부드러운 본문)' },
+  { name: 'Orbitron', label: 'Orbitron (영문 · 미래적인 제목)' },
+  { name: 'Press Start 2P', label: 'Press Start 2P (영문 · 도트 게임)' },
+  { name: 'Bungee', label: 'Bungee (영문 · 굵은 간판)' },
+  { name: 'Fredoka', label: 'Fredoka (영문 · 둥근 제목)' },
 ]
 
 /** CSS에 안전하게 넣을 글꼴 이름(따옴표·세미콜론 등은 제거). 비어 있으면 빈 문자열. */

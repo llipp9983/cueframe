@@ -11,7 +11,8 @@ import {
 import { hitTest } from '../../core/geometry.js'
 import { alignLayers, distributeLayers } from '../../core/align.js'
 import { mediaUrl, resolveMedia, loadImageInfo, loadVideoInfo, estimateGifMemory } from '../scene/media.js'
-import { buildTemplateProject } from '../../core/templates.js'
+import { buildTemplateProject, exportDefinition, templateParts, chatStyleOf } from '../../core/templates.js'
+import { projectToTemplateDef, isTemplateFileName } from '../../core/templatePack.js'
 import { ask, askSave, inform, promptName, showText } from '../dialogs/dialogStore.js'
 import { OBS_GUIDE, ABOUT_TEXT } from '../dialogs/texts.js'
 
@@ -260,7 +261,8 @@ export async function saveProject(saveAs = false) {
   }))
   st().set({ saving: { done: 0, total: 0 }, notice: '' })
   try {
-    const res = await api.saveProject({ dir, project: { name, output: s.output, scenes, activeSceneId: s.activeSceneId }, recovered: s.recovered })
+    const output = { ...s.output, transitionImages: (s.output.transitionImages ?? []).map(abs) }
+    const res = await api.saveProject({ dir, project: { name, output, scenes, activeSceneId: s.activeSceneId }, recovered: s.recovered })
     if (res.cancelled) {
       st().set({ notice: '저장을 취소했습니다.' })
       return false
@@ -406,10 +408,122 @@ export function addParticles(type = 'snow') {
 }
 
 /** 템플릿으로 새 프로젝트를 만든다(지금 작업은 저장 여부를 먼저 묻는다). 그림은 저장할 때 프로젝트 폴더로 복사된다. */
-export async function applyTemplate(t) {
+/** dir = 그 템플릿의 그림이 있는 폴더(기본 템플릿이면 비워 두면 된다) */
+async function dirOf(dir) {
+  return (dir || (await api.templatesDir())).split(String.fromCharCode(92)).join('/')
+}
+
+export async function applyTemplate(t, dir) {
   if (!(await confirmDiscard())) return
-  const dir = (await api.templatesDir()).split(String.fromCharCode(92)).join('/')
-  st().loadProject({ project: buildTemplateProject(t, dir), dir: null })
+  const d = await dirOf(dir)
+  st().loadProject({ project: buildTemplateProject(t, d), dir: null })
   st().set({ dirty: true, notice: `'${t.name}' 템플릿으로 시작했습니다. 카운트다운 시각과 문구를 바꿔 보세요.` })
   clearAutosave()
+}
+
+/** 채팅창 모양만: 지금 장면의 채팅창에 입히고, 없으면 새로 만든다 */
+export async function applyTemplateChat(t, dir) {
+  const parts = templateParts(t, await dirOf(dir))
+  const layers = st().layers
+  if (layers.some((l) => l.kind === 'Chat')) {
+    st().commit(layers.map((l) => (l.kind === 'Chat' ? { ...l, chat: parts.chat } : l)))
+  } else {
+    const c = makeChat()
+    c.chat = parts.chat
+    st().commit(insertLayer(layers, c), { selection: [c.id] })
+  }
+  st().set({ notice: `'${t.name}' 템플릿의 채팅창 모양을 적용했습니다.` })
+}
+
+/** 장면 전환 효과만(사진 전환이면 그 사진도) */
+export async function applyTemplateTransition(t, dir) {
+  const parts = templateParts(t, await dirOf(dir))
+  st().setOutput({ transition: parts.transition, transitionImages: parts.transitionImages })
+  api.outputConfig({ ...st().output })
+  st().set({ notice: `'${t.name}' 템플릿의 장면 전환 효과를 적용했습니다.` })
+}
+
+/** 움직임만: 분위기 효과와 흐르는·반짝이는·흔들리는 그림 레이어를 지금 장면에 더한다 */
+export async function applyTemplateMotion(t, dir) {
+  const parts = templateParts(t, await dirOf(dir))
+  if (!parts.motion.length) {
+    await inform('이 템플릿에는 따로 가져올 움직임 레이어가 없습니다.')
+    return
+  }
+  let layers = st().layers
+  for (const l of parts.motion) layers = insertLayer(layers, l)
+  st().commit(layers, { selection: parts.motion.map((l) => l.id) })
+  st().set({ notice: `'${t.name}' 템플릿의 움직임 레이어 ${parts.motion.length}개를 더했습니다.` })
+}
+
+/** 기본·내 템플릿을 파일(.cftemplate)로 저장 */
+export async function exportTemplate(t, source) {
+  try {
+    const path = await api.templates.exportFile({ source, id: t.id, def: exportDefinition(t) })
+    if (path) st().set({ notice: `템플릿 파일로 저장했습니다: ${path}` })
+  } catch (e) {
+    await inform(`템플릿을 저장하지 못했습니다: ${cleanErr(e)}`, { warn: true })
+  }
+}
+
+/** 파일(.cftemplate)에서 내 템플릿 가져오기. 가져온 템플릿을 돌려준다. */
+export async function importTemplate() {
+  try {
+    const t = await api.templates.importFile()
+    if (t) st().set({ notice: `'${t.name}' 템플릿을 가져왔습니다.` })
+    return t
+  } catch (e) {
+    await inform(`템플릿을 가져오지 못했습니다: ${cleanErr(e)}`, { warn: true })
+    return null
+  }
+}
+
+export async function removeTemplate(t) {
+  if (!(await ask({ title: '내 템플릿 삭제', message: `'${t.name}' 템플릿을 지울까요? 파일도 함께 지워지며 되돌릴 수 없습니다. (이미 이 템플릿으로 만든 프로젝트는 그대로입니다)`, warn: true, buttons: [{ label: '지우기', value: true }, { label: '취소', value: false, accent: true }], cancelValue: false }))) return false
+  try {
+    await api.templates.remove(t.id)
+    return true
+  } catch (e) {
+    await inform(`지우지 못했습니다: ${cleanErr(e)}`, { warn: true })
+    return false
+  }
+}
+
+const cleanErr = (e) => String(e?.message ?? e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+
+/** 지금 화면을 내 템플릿으로 저장: 지금 장면 = "대기 중", 바로 다음 장면이 있으면 "곧 시작" */
+export async function saveCurrentAsTemplate() {
+  const s = st()
+  const scenes = s.allScenes()
+  const i = scenes.findIndex((x) => x.id === s.activeSceneId)
+  const name = await promptName({ title: '내 템플릿으로 저장', label: '템플릿 이름을 입력하세요.', initial: s.projectName === '제목 없음' ? '' : s.projectName })
+  if (!name) return null
+  const names = new Map() // 원본 경로 → 템플릿 안의 그림 이름
+  const files = []
+  const fileFor = (p) => {
+    const abs = resolveMedia(s.projectDir, p)
+    if (!abs) return null
+    if (names.has(abs)) return names.get(abs)
+    const base = fileNameOf(abs).replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^[._-]+/, '').slice(-60)
+    const n = `${names.size + 1}-${base}`
+    if (!isTemplateFileName(n)) return null
+    names.set(abs, n)
+    files.push({ name: n, src: abs })
+    return n
+  }
+  const { def, skipped } = projectToTemplateDef({
+    name,
+    waitLayers: scenes[i].layers,
+    soonLayers: scenes[i + 1]?.layers ?? null,
+    output: s.output,
+    fileFor,
+  })
+  try {
+    const saved = await api.templates.saveFromProject({ def, files })
+    st().set({ notice: `'${saved.name}' 을(를) 내 템플릿으로 저장했습니다.${skipped ? ` (영상·위젯 등 ${skipped}개 레이어는 템플릿에 넣을 수 없어 뺐습니다)` : ''}` })
+    return saved
+  } catch (e) {
+    await inform(`템플릿으로 저장하지 못했습니다: ${cleanErr(e)}`, { warn: true })
+    return null
+  }
 }

@@ -68,6 +68,14 @@ export function getSettings() {
     lastMediaDir: typeof r.lastMediaDir === 'string' ? r.lastMediaDir : null, // 소품·배경을 마지막으로 고른 폴더
   }
 }
+// 화면(렌더러)에서 바꿀 수 있는 설정 항목. 나머지(마지막 프로젝트, 연결 대상 등)는 메인 프로세스만 정한다.
+const EDITABLE = ['autoConnectChzzk', 'autoConnectAsked', 'autoConnectYoutube', 'autoYoutubeAsked', 'autoConnectYtweb', 'autoConnectSoop', 'youtubePollSeconds', 'lastMediaDir']
+export function cleanSettingsPatch(patch) {
+  const p = patch && typeof patch === 'object' ? patch : {}
+  const out = {}
+  for (const k of EDITABLE) if (k in p) out[k] = k === 'lastMediaDir' ? (typeof p[k] === 'string' || p[k] === null ? p[k] : null) : p[k]
+  return out
+}
 export function setSettings(patch) {
   const next = { ...getSettings(), ...patch }
   atomicWrite(settingsFile(), JSON.stringify(next, null, 2))
@@ -130,9 +138,11 @@ export function cleanWidgetUrl(raw) {
 // ── 자동 저장(저장하지 않은 작업 복구용)
 const autosaveFile = () => path.join(paths.roaming, 'autosave', 'autosave.json')
 export function writeAutosave(obj) {
+  const text = JSON.stringify(obj)
+  if (text.length > 64 * 1024 * 1024) throw new Error('자동 저장 내용이 너무 큽니다.')
   fs.mkdirSync(path.dirname(autosaveFile()), { recursive: true })
   const tmp = autosaveFile() + '.tmp'
-  fs.writeFileSync(tmp, JSON.stringify(obj), 'utf8')
+  fs.writeFileSync(tmp, text, 'utf8')
   fs.renameSync(tmp, autosaveFile())
 }
 export function readAutosave() {

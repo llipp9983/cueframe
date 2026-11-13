@@ -14,7 +14,7 @@ import { mediaUrl, loadImageInfo, loadVideoInfo } from '../scene/media.js'
 import { isVideoPath } from '../../core/layer.js'
 import * as actions from './actions.js'
 import SceneBar from './SceneBar.jsx'
-import { showStartGuide } from '../dialogs/dialogStore.js'
+import { showStartGuide, showConnect } from '../dialogs/dialogStore.js'
 import { newProject, openProject, saveProject, confirmDiscard, offerRecovery, writeAutosaveIfDirty, clearAutosave, startRename, deleteSelected, nudgeSelected, duplicateSelected, flipSelected, alignSelected, selectAll, setOpacitySelected, refreshRecent, loadUserPresets } from './actions.js'
 
 if (import.meta.env.DEV) window.__actions = actions // 개발 중 점검용
@@ -49,19 +49,21 @@ export default function EditorApp() {
     api.update.state().then((u) => s.set({ update: u }))
     api.outputIsOpen().then((o) => s.set({ outputOpen: !!o }))
     ;(async () => {
-      if (await offerRecovery()) return
+      const recovered = await offerRecovery()
       const st = await api.getSettings()
-      // 처음 쓰는 분에게만 한 번 시작하기 안내를 보여 준다(이미 쓰던 프로젝트가 있으면 보여 주지 않는다)
-      if (!st.lastProject && !localStorage.getItem('cueframe.seenStart')) {
-        localStorage.setItem('cueframe.seenStart', '1')
-        setTimeout(() => showStartGuide(), 800)
-      }
-      if (st.lastProject) {
+      if (!recovered && st.lastProject) {
         const res = await api.openProject(st.lastProject)
         if (res?.project) {
           s.loadProject(res)
           s.set({ notice: [...(res.warnings ?? []), res.recovered ? '프로젝트 파일이 손상되어 백업(.bak)에서 복구했습니다.' : ''].filter(Boolean).join(' ') })
         }
+      }
+      // 프로그램을 켤 때마다 채팅 연결(로그인) 창을 먼저 보여 준다. 채팅 없이 쓰려면 [로그인하지 않음]
+      await showConnect({ startup: true })
+      // 처음 쓰는 분에게만 한 번 시작하기 안내를 보여 준다(이미 쓰던 프로젝트가 있으면 보여 주지 않는다)
+      if (!st.lastProject && !localStorage.getItem('cueframe.seenStart')) {
+        localStorage.setItem('cueframe.seenStart', '1')
+        showStartGuide()
       }
     })()
     const offs = [

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Shell } from './Shell.jsx'
-import { useDialogs, showGuide, inform } from './dialogStore.js'
+import { useDialogs, showGuide, inform, ask } from './dialogStore.js'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
 import Collapse from '../editor/Collapse.jsx'
@@ -403,10 +403,22 @@ export default function ConnectDialog({ d }) {
       localStorage.setItem('cueframe.connectTab', id)
     } catch {}
   }
+  const startup = !!d.props?.startup
+  // 채팅 없이 쓰려는 분: 연동되지 않는다는 안내를 보여 주고, 확인하면 그대로 진행한다
+  const skip = async () => {
+    const ok = await ask({
+      title: '채팅 연동 안내',
+      message: ['로그인하지 않으면 채팅이 연동되지 않습니다.', '채팅창에는 실제 채팅 대신 샘플 채팅이 나오고, 대기화면 편집과 방송 출력은 그대로 쓸 수 있습니다.', '나중에 화면 아래의 채팅 상태 버튼을 누르면 언제든 연결할 수 있습니다.'].join('\n'),
+      buttons: [{ label: '확인', value: true, accent: true }, { label: '돌아가기', value: false }],
+      cancelValue: false,
+    })
+    if (ok) close(d.id, true)
+  }
   const dotOf = (s) => (s.state === 'connected' ? 'var(--ok)' : s.state === 'connecting' || s.state === 'retry' ? 'var(--warn)' : null)
   return (
-    <Shell id={d.id} title="채팅 연결" width={500} cancelValue={true} foot={<button onClick={() => close(d.id, true)}>닫기</button>}>
+    <Shell id={d.id} title="채팅 연결" width={500} cancelValue={true} foot={startup ? (<><button onClick={skip}>로그인하지 않음</button><button className="accent" onClick={() => close(d.id, true)}>연결하고 시작</button></>) : <button onClick={() => close(d.id, true)}>닫기</button>}>
       <div className="body" style={{ whiteSpace: 'normal' }}>
+        {startup && <div className="muted" style={{ marginBottom: 10, lineHeight: 1.6 }}>방송 채팅을 대기화면에 띄우려면 아래에서 플랫폼을 연결하세요. 채팅 없이 쓰려면 [로그인하지 않음]을 누르세요.</div>}
         <div role="tablist" aria-label="플랫폼" style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
           {TABS.map((t) => {
             const dot = t.id === 'chzzk' ? dotOf(chzzk) : t.id === 'youtube' ? dotOf(youtube) ?? dotOf(ytweb) : dotOf(soop)

@@ -27,6 +27,8 @@ function EffectsSection({ layer }) {
       {!bg && <SliderRow label="숨쉬기(깜빡임)" value={fx.pulse} min={0} max={1} step={0.01} onChange={set('pulse')} fmt={(v) => `${Math.round(v * 100)}%`} />}
       {!bg && <SliderRow label="천천히 돌기" value={fx.spin} min={0} max={90} onChange={set('spin')} fmt={(v) => `${Math.round(v)}°/초`} />}
       {!bg && (fx.float > 0 || fx.sway > 0 || fx.pulse > 0) && <SliderRow label="움직임 주기(초)" value={fx.floatSpeed} min={1} max={12} step={0.5} onChange={set('floatSpeed')} fmt={(v) => `${v}s`} />}
+      {!bg && <SliderRow label="반짝반짝" value={fx.twinkle} min={0} max={1} step={0.01} onChange={set('twinkle')} fmt={(v) => `${Math.round(v * 100)}%`} />}
+      {!bg && <SliderRow label="옆으로 흐르기" value={fx.scroll} min={0} max={400} onChange={set('scroll')} fmt={(v) => `${Math.round(v)}px/초`} />}
       <SliderRow label="흐리게" value={fx.blur} min={0} max={40} onChange={set('blur')} fmt={(v) => `${Math.round(v)}px`} />
       <SliderRow label="어둡게" value={fx.dim} min={0} max={0.9} step={0.01} onChange={set('dim')} fmt={(v) => `${Math.round(v * 100)}%`} />
       <button disabled={!any} style={{ marginTop: 4 }} onClick={() => patchLayer(layer.id, { fx: null })}>효과 모두 끄기</button>

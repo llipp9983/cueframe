@@ -1,213 +1,112 @@
-// 대기화면 템플릿 10종. 그림 파일은 assets/templates/<id>/ 에 있고(scripts/gen-templates.mjs 가 그린다),
-// 여기서는 어떤 레이어를 어디에 놓을지만 정한다. 소품은 모두 테이블 윗면(SURFACE_Y)에 서 있다.
+// 대기화면 템플릿. 그림 파일은 assets/templates/<id>/ 에 있고(scripts/tpl/<id>.mjs 가 그린다),
+// 각 템플릿의 레이어 구성은 src/core/templates/<id>.js 에 있다. 여기서는 그것을 프로젝트로 만든다.
+//
+// 템플릿 정의(src/core/templates/<id>.js 의 default export):
+//   { id, name, description, transition, font, chatPreset, chat: {x,y,width,height}, wait: [레이어...], soon: [레이어...] | 'same' }
+// 레이어는 뒤→앞 순서이고 종류는 다음과 같다. file 은 그 템플릿 폴더 안의 파일 이름.
+//   { kind:'Background', file, fx? }                         1920x1080 배경
+//   { kind:'Prop', name, file, x, y, w, h, fx?, opacity? }   자유롭게 놓는 그림(투명 PNG). 옆으로 흐르는 그림은 w 를 2배로(왼쪽 반 = 오른쪽 반)
+//   { kind:'Text', name, role?, mode:'text'|'countdown'|'clock', box:{x,y,w,h}, style:{...textStyle}, fx? }
+//        role 'title' = 곧 시작 장면에서 soonTitle 로 바뀜, 'countdown' = 곧 시작 장면에서 빠짐
+//   { kind:'Particles', type, opts? }                        눈·꽃잎·별·하트·반짝이·거품
+//   { kind:'Chat' }                                          채팅창(위치·크기는 chat, 모양은 chatPreset)
+// soon 이 'same' 이면 wait 에서 role 'countdown' 문구와 채팅창을 빼고 role 'title' 문구를 soonTitle 로 바꾼다.
 import { createLayer, CANVAS_W, CANVAS_H } from './layer.js'
 import { defaultTextStyle } from './textStyle.js'
 import { defaultParticles } from './particles.js'
 import { normalizeChatStyle } from './chatStyle.js'
+import { normalizeFx } from './fx.js'
 import { BUILTIN_PRESETS } from './presets.js'
 import { makeChat, makeParticles } from './scene.js'
 import { emptyProject, newScene } from './project.js'
+import { withDir } from './templatePack.js'
+import skyOnline from './templates/sky-online.js'
+import gamingRoom from './templates/gaming-room.js'
+import winterPixel from './templates/winter-pixel.js'
+import lofiWindow from './templates/lofi-window.js'
+import starryNight from './templates/starry-night.js'
+import neonCity from './templates/neon-city.js'
+import sakuraCafe from './templates/sakura-cafe.js'
+import sunsetBeach from './templates/sunset-beach.js'
 
-export const TABLE_Y = 780
-export const TABLE_H = 300
-export const TABLE_TOP_ROW = 22 // table.png 안에서 윗면이 시작되는 줄
-export const SURFACE_Y = TABLE_Y + TABLE_TOP_ROW
-
-/** props: [{file, w, h, x, name, fx?}]  (x = 왼쪽 위치, 바닥은 항상 테이블 윗면) */
-export const TEMPLATES = [
-  {
-    id: 'starry-night',
-    name: '별빛 밤하늘',
-    description: '별이 반짝이는 보랏빛 밤. 은은하게 빛나는 램프와 따뜻한 머그잔.',
-    font: 'Jua',
-    chatPreset: '별빛 밤하늘',
-    title: '잠시 후 방송이 시작돼요',
-    textColor: '#FFF6D6',
-    particles: { type: 'sparkle', count: 34, size: 20, speed: 16, sway: 30, color: '#FFF3A8' },
-    props: [
-      { file: 'lamp.png', w: 220, h: 420, x: 150, name: '램프', fx: { glow: 0.55, glowColor: '#FFD97A', pulse: 0.25, floatSpeed: 5 } },
-      { file: 'books.png', w: 320, h: 170, x: 520, name: '책' },
-      { file: 'mug.png', w: 200, h: 190, x: 930, name: '머그잔', fx: { shadow: 0.3 } },
-    ],
-  },
-  {
-    id: 'cherry-cafe',
-    name: '벚꽃 카페',
-    description: '연분홍 창가에 벚꽃잎이 날리는 아늑한 카페.',
-    font: 'Gowun Dodum',
-    chatPreset: '하트 편지지',
-    title: '곧 방송이 시작됩니다',
-    textColor: '#7A3B52',
-    particles: { type: 'petal', count: 30, size: 30, speed: 14, sway: 70, color: '#FFB7C9' },
-    props: [
-      { file: 'cake.png', w: 230, h: 200, x: 190, name: '케이크', fx: { shadow: 0.35 } },
-      { file: 'cup.png', w: 250, h: 170, x: 560, name: '찻잔', fx: { shadow: 0.3 } },
-      { file: 'plant.png', w: 250, h: 340, x: 980, name: '화분', fx: { sway: 2, floatSpeed: 6 } },
-    ],
-  },
-  {
-    id: 'neon-city',
-    name: '네온 도시',
-    description: '비 갠 밤의 도시 스카이라인과 네온 불빛. 게임·IT 방송에 잘 어울려요.',
-    font: 'Black Han Sans',
-    chatPreset: '네온 사이버',
-    title: 'STARTING SOON',
-    textColor: '#E6F7FF',
-    particles: { type: 'bubble', count: 18, size: 24, speed: 22, sway: 25, color: '#7FE9FF' },
-    props: [
-      { file: 'cube.png', w: 240, h: 240, x: 170, name: '네온 큐브', fx: { glow: 0.7, glowColor: '#FF2BD6', float: 10, floatSpeed: 4 } },
-      { file: 'laptop.png', w: 400, h: 250, x: 520, name: '노트북', fx: { shadow: 0.4 } },
-      { file: 'headphones.png', w: 260, h: 240, x: 1010, name: '헤드폰', fx: { glow: 0.35, glowColor: '#00E5FF' } },
-    ],
-  },
-  {
-    id: 'mint-room',
-    name: '민트 룸',
-    description: '민트색 벽과 작은 선반이 있는 포근한 방. 로파이 감성.',
-    font: 'Do Hyeon',
-    chatPreset: '민트 소다',
-    title: '조금만 기다려 주세요',
-    textColor: '#0E5E4D',
-    particles: { type: 'bubble', count: 22, size: 26, speed: 20, sway: 40, color: '#BFE9FF' },
-    props: [
-      { file: 'cat.png', w: 300, h: 300, x: 170, name: '고양이', fx: { float: 6, floatSpeed: 3 } },
-      { file: 'plant.png', w: 250, h: 340, x: 560, name: '화분', fx: { sway: 2, floatSpeed: 6 } },
-      { file: 'mug.png', w: 200, h: 190, x: 960, name: '머그잔' },
-    ],
-  },
-  {
-    id: 'sunset-beach',
-    name: '노을 해변',
-    description: '붉게 물드는 바다와 야자수. 여름 분위기 방송에.',
-    font: 'Jua',
-    chatPreset: '다크 골드',
-    title: '노을이 지면 시작해요',
-    textColor: '#FFF1DC',
-    particles: { type: 'sparkle', count: 24, size: 18, speed: 18, sway: 20, color: '#FFE9B0' },
-    props: [
-      { file: 'palm.png', w: 330, h: 540, x: 110, name: '야자수', fx: { sway: 3, floatSpeed: 6 } },
-      { file: 'drink.png', w: 180, h: 300, x: 620, name: '음료', fx: { shadow: 0.3 } },
-      { file: 'surfboard.png', w: 200, h: 470, x: 1020, name: '서핑보드', fx: { shadow: 0.3 } },
-    ],
-  },
-  {
-    id: 'minimal-dark',
-    name: '미니멀 다크',
-    description: '군더더기 없는 어두운 화면. 어떤 방송에도 어울리는 기본형.',
-    font: '',
-    chatPreset: '기본 어두운 창',
-    title: '방송 준비 중입니다',
-    textColor: '#E8EAED',
-    particles: { type: 'snow', count: 26, size: 14, speed: 24, sway: 20, color: '#FFFFFF' },
-    props: [
-      { file: 'sphere.png', w: 220, h: 300, x: 190, name: '구', fx: { glow: 0.4, glowColor: '#4FD1B1', float: 8, floatSpeed: 5 } },
-      { file: 'cube.png', w: 240, h: 240, x: 560, name: '큐브', fx: { shadow: 0.4 } },
-      { file: 'plant.png', w: 250, h: 340, x: 940, name: '화분' },
-    ],
-  },
-  {
-    id: 'arcade-night',
-    name: '아케이드 나이트',
-    description: '레트로 석양과 격자 바닥. 장면이 네온 빛이 쓸고 지나가듯(닦아내기) 바뀝니다.',
-    transition: 'wipe',
-    font: 'Black Han Sans',
-    chatPreset: '네온 사이버',
-    title: 'PRESS START',
-    textColor: '#FFF1FB',
-    particles: { type: 'sparkle', count: 26, size: 16, speed: 20, sway: 20, color: '#FF7AE8' },
-    props: [
-      { file: 'joystick.png', w: 220, h: 300, x: 170, name: '조이스틱', fx: { glow: 0.5, glowColor: '#FF2BD6', pulse: 0.2, floatSpeed: 5 } },
-      { file: 'cube.png', w: 240, h: 240, x: 560, name: '네온 큐브', fx: { glow: 0.6, glowColor: '#00E5FF', float: 10, floatSpeed: 4 } },
-      { file: 'headphones.png', w: 260, h: 240, x: 1000, name: '헤드폰', fx: { glow: 0.35, glowColor: '#FF2BD6' } },
-    ],
-  },
-  {
-    id: 'snow-cabin',
-    name: '눈 오는 오두막',
-    description: '눈 내리는 겨울밤, 창가의 따뜻한 불빛. 장면이 흐려지며(블러) 부드럽게 바뀝니다.',
-    transition: 'blur',
-    font: 'Gowun Dodum',
-    chatPreset: '다크 골드',
-    title: '따뜻하게 기다려 주세요',
-    textColor: '#FFF3DC',
-    particles: { type: 'snow', count: 44, size: 16, speed: 26, sway: 40, color: '#FFFFFF' },
-    props: [
-      { file: 'snowman.png', w: 240, h: 340, x: 150, name: '눈사람', fx: { sway: 2, floatSpeed: 6 } },
-      { file: 'mug.png', w: 200, h: 190, x: 620, name: '머그잔', fx: { shadow: 0.3 } },
-      { file: 'books.png', w: 320, h: 170, x: 930, name: '책' },
-    ],
-  },
-  {
-    id: 'aquarium',
-    name: '아쿠아리움',
-    description: '푸른 물속과 빛줄기, 산호와 물고기. 장면이 물속으로 빨려 들듯(줌) 바뀝니다.',
-    transition: 'zoom',
-    font: 'Jua',
-    chatPreset: '민트 소다',
-    title: '곧 방송이 시작돼요',
-    textColor: '#EAFBFF',
-    particles: { type: 'bubble', count: 30, size: 26, speed: 24, sway: 50, color: '#BFEFFF' },
-    props: [
-      { file: 'coral.png', w: 260, h: 330, x: 150, name: '산호', fx: { sway: 2, floatSpeed: 6 } },
-      { file: 'fish.png', w: 300, h: 220, x: 560, name: '물고기', fx: { float: 14, floatSpeed: 3 } },
-      { file: 'shell.png', w: 200, h: 160, x: 1010, name: '조개', fx: { shadow: 0.3 } },
-    ],
-  },
-  {
-    id: 'autumn-forest',
-    name: '가을 숲',
-    description: '단풍 든 숲과 낙엽. 장면이 옆으로 밀리듯(슬라이드) 바뀝니다.',
-    transition: 'slide-left',
-    font: 'Do Hyeon',
-    chatPreset: '다크 골드',
-    title: '가을 바람이 불면 시작해요',
-    textColor: '#FFF1DA',
-    particles: { type: 'petal', count: 26, size: 30, speed: 16, sway: 80, color: '#F2994A' },
-    props: [
-      { file: 'pumpkin.png', w: 260, h: 220, x: 170, name: '호박', fx: { shadow: 0.35 } },
-      { file: 'mug.png', w: 200, h: 190, x: 600, name: '머그잔', fx: { shadow: 0.3 } },
-      { file: 'books.png', w: 320, h: 170, x: 940, name: '책' },
-    ],
-  },
-]
+export const TEMPLATES = [skyOnline, gamingRoom, winterPixel, lofiWindow, starryNight, neonCity, sakuraCafe, sunsetBeach]
 
 const presetStyle = (name) => (BUILTIN_PRESETS.find((p) => p.name === name) ?? BUILTIN_PRESETS[0]).style
 
-function textLayer(name, mode, box, style) {
-  return createLayer('Text', { name, x: box.x, y: box.y, width: box.w, height: box.h, keepAspect: false, text: { ...defaultTextStyle(mode), ...style } })
+/** 템플릿의 채팅창 모양. 직접 담아 둔 것(chatStyle)이 있으면 그것, 없으면 프리셋. dir 이 있으면 그림 이름 앞에 폴더를 붙인다. */
+export function chatStyleOf(t, dir = null) {
+  const base = normalizeChatStyle(t.chatStyle ?? presetStyle(t.chatPreset))
+  if (!dir) return base
+  return { ...base, bgImage: withDir(dir, t.id, base.bgImage), images: base.images.map((i) => ({ ...i, src: withDir(dir, t.id, i.src) })) }
 }
 
-/** 한 장면의 레이어들 */
-function sceneLayers(t, dir, kind) {
-  const f = (file) => `${dir}/${t.id}/${file}`
-  const layers = [
-    createLayer('Background', { name: '배경', mediaPath: f('bg.jpg'), x: 0, y: 0, width: CANVAS_W, height: CANVAS_H, keepAspect: false }),
-    createLayer('Table', { name: '테이블', mediaPath: f('table.png'), x: 0, y: TABLE_Y, width: CANVAS_W, height: TABLE_H }),
-    ...t.props.map((p) => createLayer('Prop', { name: p.name, mediaPath: f(p.file), x: p.x, y: SURFACE_Y - p.h, width: p.w, height: p.h, fx: p.fx ? { ...p.fx } : null })),
-  ]
-  const pt = makeParticles(t.particles.type)
-  pt.particles = { ...defaultParticles(t.particles.type), ...t.particles }
-  layers.push(pt)
-  const common = { fontFamily: t.font, color: t.textColor, shadow: true, shadowColor: '#000000' }
-  if (kind === 'wait') {
-    layers.push(textLayer('제목', 'text', { x: 140, y: 100, w: 1200, h: 150 }, { ...common, content: t.title, fontSize: 80 }))
-    layers.push(textLayer('카운트다운', 'countdown', { x: 140, y: 245, w: 1200, h: 300 }, { ...common, fontSize: 170, prefix: '방송 시작까지', targetAt: null }))
-    const chat = makeChat()
-    chat.chat = normalizeChatStyle(presetStyle(t.chatPreset))
-    layers.push(chat)
-  } else {
-    layers.push(textLayer('곧 시작', 'text', { x: 160, y: 300, w: 1600, h: 260 }, { ...common, content: '잠시 후 방송이 시작됩니다', fontSize: 120 }))
-  }
-  return layers
+/** 'same' 이면 wait 에서 곧 시작 장면용 목록을 만든다 */
+export function soonSpecs(t) {
+  if (Array.isArray(t.soon)) return t.soon
+  return t.wait
+    .filter((s) => s.kind !== 'Chat' && s.role !== 'countdown')
+    .map((s) => (s.role === 'title' ? { ...s, style: { ...s.style, content: t.soonTitle ?? '잠시 후 방송이 시작됩니다' } } : s))
 }
+
+function layerFromSpec(t, dir, s) {
+  const f = (file) => `${dir}/${t.id}/${file}`
+  const fx = s.fx ? normalizeFx(s.fx) : null
+  switch (s.kind) {
+    case 'Background':
+      return createLayer('Background', { name: s.name ?? '배경', mediaPath: f(s.file), x: 0, y: 0, width: CANVAS_W, height: CANVAS_H, keepAspect: false, fx })
+    case 'Prop':
+      return createLayer('Prop', { name: s.name ?? '소품', mediaPath: f(s.file), x: s.x, y: s.y, width: s.w, height: s.h, opacity: s.opacity ?? 1, rotation: s.rotation ?? 0, flipX: s.flipX === true, fx })
+    case 'Text': {
+      const text = { ...defaultTextStyle(s.mode ?? 'text'), fontFamily: t.font ?? '', ...s.style }
+      return createLayer('Text', { name: s.name ?? '문구', x: s.box.x, y: s.box.y, width: s.box.w, height: s.box.h, keepAspect: false, text, fx })
+    }
+    case 'Particles': {
+      const pt = makeParticles(s.type)
+      pt.particles = { ...defaultParticles(s.type), ...s.opts }
+      return pt
+    }
+    case 'Chat': {
+      const chat = makeChat()
+      const c = t.chat ?? {}
+      Object.assign(chat, { x: c.x ?? chat.x, y: c.y ?? chat.y, width: c.width ?? chat.width, height: c.height ?? chat.height })
+      chat.chat = chatStyleOf(t, dir)
+      return chat
+    }
+    default:
+      throw new Error(`알 수 없는 템플릿 레이어: ${s.kind}`)
+  }
+}
+
+export const templateLayers = (t, dir, which) => (which === 'soon' ? soonSpecs(t) : t.wait).map((s) => layerFromSpec(t, dir, s))
 
 /** 템플릿 → 프로젝트(장면 2개: 대기, 곧 시작). dir = 템플릿 그림이 있는 폴더 */
 export function buildTemplateProject(t, dir, now = Date.now()) {
   const base = emptyProject(t.name)
-  const wait = newScene('대기 중', sceneLayers(t, dir, 'wait'))
+  const wait = newScene('대기 중', templateLayers(t, dir, 'wait'))
   // 카운트다운은 처음엔 10분 뒤로 맞춰 둔다
-  const cd = wait.layers.find((l) => l.kind === 'Text' && l.text.mode === 'countdown')
-  cd.text = { ...cd.text, targetAt: new Date(now + 10 * 60 * 1000).toISOString() }
-  const soon = newScene('곧 시작', sceneLayers(t, dir, 'soon'))
-  return { ...base, output: { ...base.output, transition: t.transition ?? 'fade' }, scenes: [wait, soon], activeSceneId: wait.id, layers: wait.layers }
+  for (const l of wait.layers) if (l.kind === 'Text' && l.text.mode === 'countdown') l.text = { ...l.text, targetAt: new Date(now + 10 * 60 * 1000).toISOString() }
+  const soon = newScene('곧 시작', templateLayers(t, dir, 'soon'))
+  const transitionImages = (t.transitionImages ?? []).map((f) => `${dir}/${t.id}/${f}`)
+  return { ...base, output: { ...base.output, transition: t.transition ?? 'fade', transitionImages }, scenes: [wait, soon], activeSceneId: wait.id, layers: wait.layers }
+}
+
+/** 파일로 내보낼 정의(채팅창 모양을 프리셋 이름이 아니라 모양 그대로 담는다) */
+export function exportDefinition(t) {
+  const { id: _id, ...rest } = t
+  return JSON.parse(JSON.stringify({ ...rest, chatStyle: chatStyleOf(t), soon: t.soon ?? 'same' }))
+}
+
+/**
+ * 템플릿의 일부만 지금 프로젝트에 적용할 때 쓸 것들.
+ *  chat: 채팅창 모양, transition/transitionImages: 장면 전환, motion: 움직임이 있는 레이어(분위기 효과, 흐르는·반짝이는·흔들리는 그림)
+ */
+export function templateParts(t, dir) {
+  const fxMoves = (fx) => !!fx && (fx.scroll > 0 || fx.twinkle > 0 || fx.pulse > 0 || fx.float > 0 || fx.sway > 0 || fx.spin > 0)
+  const motion = t.wait.filter((s) => s.kind === 'Particles' || (s.kind === 'Prop' && fxMoves(s.fx ? normalizeFx(s.fx) : null))).map((s) => layerFromSpec(t, dir, s))
+  return {
+    chat: chatStyleOf(t, dir),
+    transition: t.transition ?? 'fade',
+    transitionImages: (t.transitionImages ?? []).map((f) => `${dir}/${t.id}/${f}`),
+    motion,
+  }
 }

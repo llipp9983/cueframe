@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen, Menu, session } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -10,21 +10,32 @@ import * as chzzk from './chzzk.js'
 import * as youtube from './youtube.js'
 import * as ytweb from './ytweb.js'
 import * as soop from './soop.js'
+import * as userTemplates from './templates.js'
 import { openProject, saveProject, isMedia } from './projectIO.js'
 import * as updater from './updater.js'
 import { fitOutputResize } from '../src/core/outputResize.js'
+import { normalizeOutput } from '../src/core/project.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEV = process.env.NODE_ENV === 'development'
 const ICON = path.join(__dirname, '..', 'build', 'icon.png')
-const ROAMING = path.join(app.getPath('appData'), 'StandbyScreen')
-const LOCAL = path.join(process.env.LOCALAPPDATA || app.getPath('appData'), 'StandbyScreen')
+// 시험용: 포장되지 않은 개발 실행에서 CUEFRAME_TEST=1 과 CUEFRAME_DATA_DIR 가 있으면 내 설정·자동 저장을 건드리지 않고 그 폴더를 쓴다
+const TEST_DATA = !app.isPackaged && process.env.CUEFRAME_TEST === '1' ? process.env.CUEFRAME_DATA_DIR : ''
+const ROAMING = TEST_DATA ? path.join(TEST_DATA, 'roaming') : path.join(app.getPath('appData'), 'StandbyScreen')
+const LOCAL = TEST_DATA ? path.join(TEST_DATA, 'local') : path.join(process.env.LOCALAPPDATA || app.getPath('appData'), 'StandbyScreen')
+
+const HIDDEN = !!TEST_DATA && process.env.CUEFRAME_HIDDEN === '1' // 시험용: 창을 화면에 띄우지 않고 그림만 찍는다
 
 app.setName('CUEFRAME')
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required') // 위젯 소리가 바로 재생되게
 
 // 위젯(webview)은 https 페이지만, 새 창·다른 프로토콜 이동·개발자 도구·우클릭 메뉴 모두 막고 배경은 투명하게
 app.on('web-contents-created', (_e, contents) => {
+  // 편집기·출력 창은 다른 주소로 이동하지 못한다(위젯 화면은 아래에서 따로 https 만 허용)
+  if (contents.getType() === 'window') {
+    contents.on('will-navigate', (ev) => ev.preventDefault())
+    contents.on('will-redirect', (ev) => ev.preventDefault())
+  }
   contents.on('will-attach-webview', (_ev, webPreferences, params) => {
     delete webPreferences.preload
     delete webPreferences.preloadURL
@@ -71,11 +82,13 @@ const broadcast = (ch, data) => {
 function pageUrl(view) {
   const file = view === 'output' ? 'output.html' : 'index.html'
   if (DEV) return `http://localhost:5173/${view === 'output' ? file : ''}`
-  return pathToFileURL(path.join(__dirname, '..', 'dist', file)).toString()
+  const dist = TEST_DATA && process.env.CUEFRAME_DIST ? path.resolve(process.env.CUEFRAME_DIST) : path.join(__dirname, '..', 'dist')
+  return pathToFileURL(path.join(dist, file)).toString()
 }
 
 function createEditor() {
   editor = new BrowserWindow({
+    ...(HIDDEN ? { x: -12000, y: -12000 } : {}), // 시험용: 화면 밖에 두어야 그림을 찍을 수 있다
     width: 1500,
     height: 860,
     minWidth: 1000,
@@ -90,6 +103,7 @@ function createEditor() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: !HIDDEN,
     },
   })
   editor.once('ready-to-show', () => editor.show())
@@ -136,6 +150,7 @@ function openOutput(conf) {
   }
   const sf = screen.getPrimaryDisplay().scaleFactor || 1
   output = new BrowserWindow({
+    ...(HIDDEN ? { x: -12000, y: -12000 } : {}), // 시험용: 화면 밖에 두어야 그림을 찍을 수 있다
     useContentSize: true,
     width: Math.round(outputConf.width / sf),
     height: Math.round(outputConf.height / sf),
@@ -197,8 +212,18 @@ const MEDIA_FILTERS = {
   any: [{ name: '이미지·영상', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'webm'] }],
 }
 
+// 이 프로그램의 편집기·출력 창에서 온 요청인지(위젯 같은 다른 화면이 채널을 두드리지 못하게)
+const trusted = (e) => {
+  const wc = e?.sender
+  return !!wc && ((editor && !editor.isDestroyed() && wc === editor.webContents) || (output && !output.isDestroyed() && wc === output.webContents))
+}
+
 function registerIpc() {
   const h = (name, fn) => ipcMain.handle(name, async (e, ...a) => {
+    if (!trusted(e)) {
+      warn(`허용되지 않은 화면의 요청을 막았습니다: ${name}`)
+      throw new Error('허용되지 않은 요청입니다.')
+    }
     try {
       return await fn(...a)
     } catch (err) {
@@ -239,8 +264,17 @@ function registerIpc() {
     if (files[0]) store.setSettings({ lastMediaDir: path.dirname(files[0]) })
     return files
   })
-  h('dialog:message', async (opts) => {
-    const r = await dialog.showMessageBox(editor, opts)
+  h('dialog:message', async (opts = {}) => {
+    const safe = {
+      type: ['none', 'info', 'error', 'question', 'warning'].includes(opts.type) ? opts.type : 'info',
+      title: String(opts.title ?? '').slice(0, 100),
+      message: String(opts.message ?? '').slice(0, 2000),
+      detail: opts.detail ? String(opts.detail).slice(0, 2000) : undefined,
+      buttons: (Array.isArray(opts.buttons) ? opts.buttons : ['확인']).slice(0, 4).map((b) => String(b).slice(0, 40)),
+      defaultId: Number.isInteger(opts.defaultId) ? opts.defaultId : 0,
+      cancelId: Number.isInteger(opts.cancelId) ? opts.cancelId : undefined,
+    }
+    const r = await dialog.showMessageBox(editor, safe)
     return r.response
   })
 
@@ -284,11 +318,14 @@ function registerIpc() {
     return res
   })
   h('project:cancelSave', () => void (cancelRef.cancelled = true))
-  h('project:revealFolder', (dir) => shell.openPath(dir))
+  h('project:revealFolder', async (dir) => {
+    if (typeof dir !== 'string' || !path.isAbsolute(dir) || !fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) throw new Error('폴더를 찾을 수 없습니다.')
+    return shell.openPath(dir)
+  })
   h('recent:get', () => store.getRecent())
   h('settings:get', () => store.getSettings())
   h('settings:set', (patch) => {
-    const s = store.setSettings(patch)
+    const s = store.setSettings(store.cleanSettingsPatch(patch))
     broadcast('chzzk:status', chzzk.getStatus())
     return s
   })
@@ -315,6 +352,11 @@ function registerIpc() {
   })
 
   // 템플릿 그림이 있는 폴더(설치된 앱에서는 resources 안, 개발 중에는 assets)
+  h('templates:listUser', () => ({ dir: userTemplates.dirs().user, items: userTemplates.listUser() }))
+  h('templates:import', () => userTemplates.importFile(editor))
+  h('templates:export', (arg) => userTemplates.exportFile(editor, arg))
+  h('templates:saveFromProject', (arg) => userTemplates.saveFromProject(arg))
+  h('templates:remove', (id) => userTemplates.remove(id))
   h('templates:dir', () => (app.isPackaged ? path.join(process.resourcesPath, 'templates') : path.join(__dirname, '..', 'assets', 'templates')))
 
   // 이 PC에 설치된 글꼴(처음 한 번만 읽어 둔다)
@@ -334,15 +376,20 @@ function registerIpc() {
   })
 
   // 위젯 주소: 암호화 보관, 출력 창에만 내려준다
-  h('widgets:get', (id) => store.getWidgets()[id] ?? '')
+  const okId = (id) => {
+    if (typeof id !== 'string' || !/^[A-Za-z0-9-]{1,60}$/.test(id)) throw new Error('올바르지 않은 위젯입니다.')
+    return id
+  }
+  h('widgets:get', (id) => store.getWidgets()[okId(id)] ?? '')
   h('widgets:set', (id, url) => {
+    okId(id)
     const clean = store.cleanWidgetUrl(url)
     if (!clean) throw new Error('https:// 로 시작하는 올바른 주소를 입력하세요.')
     store.setWidgetUrl(id, clean)
     send(output, 'widgets:changed')
   })
   h('widgets:remove', (id) => {
-    store.removeWidgetUrl(id)
+    store.removeWidgetUrl(okId(id))
     send(output, 'widgets:changed')
   })
   h('widgets:all', () => store.getWidgets())
@@ -353,25 +400,31 @@ function registerIpc() {
   h('autosave:clear', () => store.clearAutosave())
 
   // 출력
-  h('output:open', (conf) => openOutput(conf))
+  const cleanConf = (c) => {
+    const o = normalizeOutput(c)
+    return { width: o.width, height: o.height, fps: o.fps }
+  }
+  h('output:open', (conf) => openOutput(cleanConf(conf)))
   h('output:close', () => output?.close())
   h('output:isOpen', () => !!(output && !output.isDestroyed()))
   h('output:config', (conf) => {
-    outputConf = { ...outputConf, ...conf }
+    outputConf = { ...outputConf, ...cleanConf(conf) }
     try {
       output?.webContents.setFrameRate(outputConf.fps)
     } catch {}
     applyOutputSize()
   })
-  ipcMain.on('output:state', (_e, state) => {
+  ipcMain.on('output:state', (e, state) => {
+    if (!trusted(e)) return
     outputState = state
     send(output, 'output:state', state)
   })
   h('output:getState', () => outputState)
   // 채팅은 장면과 따로 보낸다(채팅이 올 때마다 장면 전체를 다시 보내지 않으려고)
-  ipcMain.on('output:chat', (_e, chat) => {
-    outputChat = chat
-    send(output, 'output:chat', chat)
+  ipcMain.on('output:chat', (e, chat) => {
+    if (!trusted(e) || !Array.isArray(chat)) return
+    outputChat = chat.slice(-50)
+    send(output, 'output:chat', outputChat)
   })
   h('output:getChat', () => outputChat)
   h('output:info', () => ({ ...outputConf, scale: scaleOf() }))
@@ -427,7 +480,8 @@ function registerIpc() {
     fs.writeFileSync(r.filePath, zipSync(files))
     return true
   })
-  ipcMain.on('log:write', (_e, level, msg) => {
+  ipcMain.on('log:write', (e, level, msg) => {
+    if (!trusted(e)) return
     const fn = level === 'error' ? error : level === 'warn' ? warn : info
     fn(`[화면] ${String(msg).slice(0, 2000)}`)
   })
@@ -446,6 +500,13 @@ process.on('uncaughtException', (err) => {
 })
 
 app.whenReady().then(() => {
+  // 카메라·마이크·알림·위치 같은 권한 요청은 모두 거절한다(위젯 화면 포함)
+  const deny = (ses) => {
+    ses.setPermissionRequestHandler((_wc, _perm, cb) => cb(false))
+    ses.setPermissionCheckHandler(() => false)
+  }
+  deny(session.defaultSession)
+  deny(session.fromPartition('widget'))
   store.initPaths(ROAMING, LOCAL)
   initLog(path.join(ROAMING, 'logs'))
   info(`CUEFRAME ${app.getVersion()} 시작`)
@@ -455,7 +516,7 @@ app.whenReady().then(() => {
     try {
       const u = new URL(req.url)
       const file = decodeURIComponent(u.pathname.slice(1))
-      if (!path.isAbsolute(file) || !/\.(png|jpe?g|gif|webp|bmp|mp4|webm|m4v|mov)$/i.test(file)) return new Response('forbidden', { status: 403 })
+      if (!path.isAbsolute(file) || /^[\\/]{2}/.test(file) || !/^[A-Za-z]:[\\/]/.test(file) || file.includes('\0') || !/\.(png|jpe?g|gif|webp|bmp|mp4|webm|m4v|mov)$/i.test(file)) return new Response('forbidden', { status: 403 })
       const r = await net.fetch(pathToFileURL(file).toString(), { headers: req.headers, bypassCustomProtocolHandlers: true })
       const headers = new Headers(r.headers)
       headers.set('Access-Control-Allow-Origin', '*') // 캔버스로 투명도를 분석하려면 필요

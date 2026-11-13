@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('api', {
   openExternal: invoke('app:openExternal'),
   listFonts: invoke('fonts:list'),
   templatesDir: invoke('templates:dir'),
+  templates: { listUser: invoke('templates:listUser'), importFile: invoke('templates:import'), exportFile: invoke('templates:export'), saveFromProject: invoke('templates:saveFromProject'), remove: invoke('templates:remove') },
   pickMedia: invoke('dialog:pickMedia'),
   message: invoke('dialog:message'),
   openProject: invoke('project:open'),

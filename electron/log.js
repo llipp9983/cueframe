@@ -42,7 +42,7 @@ const fileName = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.get
 
 export function log(level, msg) {
   const d = new Date()
-  const line = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)} [${level}] ${redact(msg)}\n`
+  const line = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)} [${level}] ${redact(msg).replace(/[\r\n]+/g, ' ')}\n`
   if (!dir) return
   try {
     fs.appendFileSync(path.join(dir, fileName(d)), line)

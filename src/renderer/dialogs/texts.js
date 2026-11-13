@@ -48,6 +48,7 @@ Electron ${info.electron} · Chromium ${info.chrome}
 - electron-updater (MIT)
 - fflate (MIT)
 - font-list (MIT)
+- Orbitron, Press Start 2P, Bungee, Fredoka 글꼴 (SIL Open Font License 1.1)
 - Pretendard 글꼴 (SIL Open Font License 1.1)
 - 주아(Jua), 블랙 한 산스(Black Han Sans), 도현(Do Hyeon), 고운돋움(Gowun Dodum) 글꼴 (SIL Open Font License 1.1)
 

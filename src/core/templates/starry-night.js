@@ -1,0 +1,38 @@
+// 별빛 밤하늘 — 남색→보라 하늘, 큰 달, 별 띠, 오로라, 산 능선과 호수 (그림: scripts/tpl/starry-night.mjs)
+export default {
+  id: 'starry-night',
+  name: '별빛 밤하늘',
+  description: '큰 달과 은하수, 은은한 오로라, 호수에 비친 달빛',
+  soonTitle: '잠시 후 방송이 시작돼요',
+  transition: 'blur',
+  font: 'Do Hyeon',
+  chatPreset: '별빛 밤하늘',
+  chat: { x: 1500, y: 110, width: 380, height: 600 },
+  wait: [
+    { kind: 'Background', file: 'bg.jpg' },
+    { kind: 'Prop', name: '먼 별 A', file: 'stars-far-a.png', x: 0, y: 0, w: 1920, h: 1080, fx: { twinkle: 0.6, floatSpeed: 5 } },
+    { kind: 'Prop', name: '먼 별 B', file: 'stars-far-b.png', x: 0, y: 0, w: 1920, h: 1080, fx: { twinkle: 0.6, floatSpeed: 8 } },
+    { kind: 'Prop', name: '오로라', file: 'aurora.png', x: 0, y: 0, w: 1920, h: 1080, fx: { pulse: 0.45, floatSpeed: 11, float: 10 } },
+    { kind: 'Prop', name: '가까운 별 A', file: 'stars-near-a.png', x: 0, y: 0, w: 1920, h: 1080, fx: { twinkle: 0.8, floatSpeed: 3.5 } },
+    { kind: 'Prop', name: '가까운 별 B', file: 'stars-near-b.png', x: 0, y: 0, w: 1920, h: 1080, fx: { twinkle: 0.8, floatSpeed: 5.5 } },
+    { kind: 'Prop', name: '산 능선', file: 'mountains.png', x: 0, y: 0, w: 1920, h: 1080 },
+    { kind: 'Prop', name: '산 반영', file: 'reflect.png', x: 0, y: 700, w: 1920, h: 220, opacity: 0.55 },
+    { kind: 'Prop', name: '달빛 길', file: 'moonpath.png', x: 0, y: 0, w: 1920, h: 1080, fx: { pulse: 0.3, floatSpeed: 6 } },
+    { kind: 'Prop', name: '물결 먼 쪽', file: 'waves-a.png', x: 0, y: 700, w: 3840, h: 400, opacity: 0.5, fx: { scroll: 14 } },
+    { kind: 'Prop', name: '물결 가까운 쪽', file: 'waves-b.png', x: 0, y: 740, w: 3840, h: 400, opacity: 0.55, fx: { scroll: 34 } },
+    { kind: 'Prop', name: '달빛 반짝임', file: 'glints.png', x: 0, y: 0, w: 1920, h: 1080, fx: { twinkle: 0.9, floatSpeed: 2.2 } },
+    { kind: 'Particles', type: 'sparkle', opts: { count: 26, size: 10, speed: 14, sway: 60, color: '#fff2a8' } },
+    {
+      kind: 'Text', name: '제목', role: 'title', mode: 'text', box: { x: 90, y: 290, w: 1300, h: 170 },
+      style: { content: '잠시 후 방송이 시작돼요', fontSize: 118, color: '#fff3d6', bold: false, letterSpacing: 2, shadow: true, shadowColor: '#ffcf7a' },
+      fx: { glow: 0.7, glowColor: '#ffd98a' },
+    },
+    {
+      kind: 'Text', name: '카운트다운', role: 'countdown', mode: 'countdown', box: { x: 290, y: 470, w: 800, h: 190 },
+      style: { prefix: '방송 시작까지', fontSize: 100, color: '#f3ecff', bold: false, letterSpacing: 4, subScale: 0.34, shadow: true, shadowColor: '#7a5cd8' },
+      fx: { glow: 0.4, glowColor: '#cdb8ff' },
+    },
+    { kind: 'Chat' },
+  ],
+  soon: 'same',
+}

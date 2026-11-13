@@ -393,7 +393,7 @@ describe('fonts', () => {
     expect(fontStack('Jua')).toBe(`"Jua", ${DEFAULT_FONT_STACK}`)
     expect(safeFontName('Evil"; } body { display:none')).not.toMatch(/["';{}]/)
     expect(fontStack('a'.repeat(200)).length).toBeLessThan(160)
-    expect(BUNDLED_FONTS.length).toBe(4)
+    expect(BUNDLED_FONTS.length).toBe(8)
   })
   it('keeps font family in text and chat styles', () => {
     expect(normalizeTextStyle({ fontFamily: 'Jua' }).fontFamily).toBe('Jua')
@@ -433,38 +433,52 @@ describe('particles and extra effects', () => {
 })
 
 import fs from 'node:fs'
-import { TEMPLATES, buildTemplateProject, SURFACE_Y } from '../src/core/templates.js'
+import { TEMPLATES, buildTemplateProject, soonSpecs } from '../src/core/templates.js'
+import { isTransition } from '../src/core/transitions.js'
 describe('templates', () => {
-  it('has 10 templates with unique ids and all art files on disk', () => {
-    expect(TEMPLATES).toHaveLength(10)
-    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(10)
+  it('has unique ids and every art file on disk', () => {
+    expect(TEMPLATES.length).toBeGreaterThanOrEqual(8)
+    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(TEMPLATES.length)
     for (const t of TEMPLATES) {
-      for (const f of ['bg.jpg', 'table.png', 'thumb.jpg', ...t.props.map((p) => p.file)]) {
-        expect(fs.existsSync(`assets/templates/${t.id}/${f}`), `${t.id}/${f}`).toBe(true)
-      }
+      const files = new Set(['thumb.jpg'])
+      for (const sp of [...t.wait, ...soonSpecs(t)]) if (sp.file) files.add(sp.file)
+      for (const f of files) expect(fs.existsSync(`assets/templates/${t.id}/${f}`), `${t.id}/${f}`).toBe(true)
     }
   })
-  it('builds two scenes whose props stand on the table', () => {
+  it('builds two scenes: wait has title, countdown and chat; soon has no chat or countdown', () => {
     for (const t of TEMPLATES) {
       const p = buildTemplateProject(t, 'C:/res/templates', Date.parse('2026-01-01T00:00:00Z'))
       expect(p.scenes.map((s) => s.name)).toEqual(['대기 중', '곧 시작'])
-      const wait = p.scenes[0].layers
-      expect(wait.map((l) => l.kind)).toEqual(expect.arrayContaining(['Background', 'Table', 'Prop', 'Particles', 'Text', 'Chat']))
-      for (const prop of wait.filter((l) => l.kind === 'Prop')) expect(prop.y + prop.height).toBe(SURFACE_Y)
-      expect(wait.find((l) => l.kind === 'Background').mediaPath).toBe(`C:/res/templates/${t.id}/bg.jpg`)
+      const [wait, soon] = p.scenes.map((s) => s.layers)
+      expect(wait[0].kind, t.id).toBe('Background')
+      expect(wait[0].mediaPath).toMatch(new RegExp(`^C:/res/templates/${t.id}/`))
+      expect(wait.map((l) => l.kind), t.id).toEqual(expect.arrayContaining(['Text', 'Chat']))
       const cd = wait.find((l) => l.kind === 'Text' && l.text.mode === 'countdown')
+      expect(cd, t.id).toBeTruthy()
       expect(Date.parse(cd.text.targetAt)).toBe(Date.parse('2026-01-01T00:10:00Z'))
-      // 레이어 순서 규칙(배경 맨 아래, 채팅창은 위쪽)과 저장·읽기 왕복
-      expect(wait[0].kind).toBe('Background')
+      expect(t.wait.some((x) => x.role === 'title'), t.id).toBe(true)
+      expect(soon.some((l) => l.kind === 'Chat'), t.id).toBe(false)
+      expect(soon.some((l) => l.kind === 'Text' && l.text.mode === 'countdown'), t.id).toBe(false)
+      expect(isTransition(p.output.transition), t.id).toBe(true)
+      // 저장·읽기 왕복에서 레이어 수가 그대로
       const back = parseProject(serializeProject(p)).project
       expect(back.scenes).toHaveLength(2)
       expect(back.scenes[0].layers.length).toBe(wait.length)
+      expect(back.scenes[1].layers.length).toBe(soon.length)
+    }
+  })
+  it('keeps layers inside sensible bounds and animated', () => {
+    for (const t of TEMPLATES) {
+      const moving = t.wait.filter((x) => x.fx && (x.fx.scroll || x.fx.twinkle || x.fx.pulse || x.fx.float || x.fx.sway || x.fx.spin)).length + t.wait.filter((x) => x.kind === 'Particles').length
+      expect(moving, `${t.id} 움직임 요소`).toBeGreaterThanOrEqual(3)
+      for (const x of t.wait) if (x.kind === 'Prop') expect(x.w > 0 && x.h > 0, `${t.id} ${x.name}`).toBe(true)
     }
   })
   it('uses an existing chat preset and bundled font for every template', () => {
     for (const t of TEMPLATES) {
       expect(BUILTIN_PRESETS.some((p) => p.name === t.chatPreset), t.id).toBe(true)
       expect(t.font === '' || BUNDLED_FONTS.some((f) => f.name === t.font), t.id).toBe(true)
+      for (const x of t.wait) if (x.kind === 'Text' && x.style?.fontFamily) expect(x.style.fontFamily === 'Pretendard' || BUNDLED_FONTS.some((f) => f.name === x.style.fontFamily), `${t.id} ${x.name}`).toBe(true)
     }
   })
 })

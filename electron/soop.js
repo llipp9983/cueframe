@@ -117,7 +117,7 @@ async function start(id) {
     const ci = r.info
     title = ci.title
     const url = WS_OVERRIDE || soopWsUrl(ci)
-    const w = new WebSocket(url, 'chat', { headers: { 'User-Agent': UA }, handshakeTimeout: 10000 })
+    const w = new WebSocket(url, 'chat', { headers: { 'User-Agent': UA }, handshakeTimeout: 10000, maxPayload: 1024 * 1024 })
     ws = w
     let joined = false
     w.on('open', () => {

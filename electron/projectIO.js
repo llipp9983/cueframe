@@ -68,6 +68,8 @@ export async function saveProject(dir, project, { onProgress, cancelRef, recover
       if (wants(l.chat?.bgImage)) sources.add(l.chat.bgImage)
     }
   }
+  const outputImages = [...(project.output?.transitionImages ?? [])]
+  for (const p of outputImages) if (wants(p)) sources.add(p)
   const total = sources.size
   let done = 0
   const rel = new Map()
@@ -95,7 +97,8 @@ export async function saveProject(dir, project, { onProgress, cancelRef, recover
     const keep = file + '.before-repair'
     if (!(await exists(keep))) await fsp.copyFile(file, keep)
   }
-  await fsp.writeFile(tmp, serializeProject({ ...project, scenes }), 'utf8')
+  const output = project.output ? { ...project.output, transitionImages: outputImages.map((p) => (rel.has(p) ? rel.get(p) : p)) } : project.output
+  await fsp.writeFile(tmp, serializeProject({ ...project, output, scenes }), 'utf8')
   if (await exists(file)) await fsp.copyFile(file, file + '.bak')
   await fsp.rename(tmp, file)
   return { dir, scenes }

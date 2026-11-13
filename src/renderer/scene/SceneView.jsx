@@ -37,13 +37,19 @@ function WidgetBox({ layer, live, url }) {
 }
 
 /** 효과(둥실둥실·흔들림은 transform 애니메이션, 그림자·흐림·어둡게는 filter). 효과가 없으면 감싸지 않는다. */
-function Fx({ fx, bg, children }) {
+const l_scrollSeconds = (fx, width) => Math.max(2, (width / 2 / fx.scroll)).toFixed(2)
+function Fx({ fx, bg, width = 1920, children }) {
   if (!hasFx(fx)) return children
   let node = children
   const filter = fxFilter(fx)
   node = (
     <div style={{ width: '100%', height: '100%', filter, transform: bg && fx.blur > 0 ? 'scale(1.06)' : undefined }}>{node}</div>
   )
+  if (fx.twinkle > 0) {
+    node = (
+      <div style={{ width: '100%', height: '100%', animation: `cf-twinkle ${(fx.floatSpeed * 0.9).toFixed(2)}s linear infinite`, '--lo': (1 - fx.twinkle * 0.75).toFixed(2) }}>{node}</div>
+    )
+  }
   if (fx.pulse > 0) {
     node = (
       <div style={{ width: '100%', height: '100%', animation: `cf-pulse ${fx.floatSpeed}s ease-in-out infinite`, '--lo': (1 - fx.pulse * 0.8).toFixed(2) }}>{node}</div>
@@ -57,6 +63,11 @@ function Fx({ fx, bg, children }) {
   if (fx.sway > 0) {
     node = (
       <div style={{ width: '100%', height: '100%', transformOrigin: '50% 100%', animation: `cf-sway ${(fx.floatSpeed * 1.3).toFixed(2)}s ease-in-out infinite`, '--deg': fx.sway, willChange: 'transform' }}>{node}</div>
+    )
+  }
+  if (fx.scroll > 0) {
+    node = (
+      <div style={{ width: '100%', height: '100%', animation: `cf-scroll ${(l_scrollSeconds(fx, width))}s linear infinite`, willChange: 'transform' }}>{node}</div>
     )
   }
   if (fx.float > 0) {
@@ -90,7 +101,7 @@ const LayerNode = memo(function LayerNode({ layer: l, projectDir, chat, missing,
         transformOrigin: 'center',
       }}
     >
-      <Fx fx={l.fx} bg={isBg}>{inner}</Fx>
+      <Fx fx={l.fx} bg={isBg} width={l.width}>{inner}</Fx>
     </div>
   )
 })

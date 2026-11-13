@@ -16,7 +16,7 @@ export const useStore = create((set, get) => ({
   liveFollow: true, // true면 편집 중인 장면을 바로 방송에 내보낸다
   renameId: null, // 이름을 바꾸는 중인 레이어
   selectedIds: [],
-  output: { width: 1920, height: 1080, fps: 30, transition: 'fade' },
+  output: { width: 1920, height: 1080, fps: 30, transition: 'fade', transitionImages: [] },
   projectName: '제목 없음',
   projectDir: null,
   recovered: false,

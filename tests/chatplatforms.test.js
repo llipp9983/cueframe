@@ -116,7 +116,6 @@ describe('채팅창 배경 그림', () => {
 
 import { TRANSITIONS, transitionFrames, transitionMs, isTransition } from '../src/core/transitions.js'
 import { normalizeOutput } from '../src/core/project.js'
-import { TEMPLATES, buildTemplateProject } from '../src/core/templates.js'
 describe('장면 전환 효과', () => {
   it('목록과 정리', () => {
     expect(TRANSITIONS.length).toBeGreaterThanOrEqual(9)
@@ -135,13 +134,122 @@ describe('장면 전환 효과', () => {
     expect(transitionFrames('fade').prevTo.opacity).toBe(0)
   })
 })
-describe('템플릿 10종', () => {
-  it('고유 id, 전환 효과가 프로젝트에 들어간다', () => {
-    expect(TEMPLATES.length).toBe(10)
-    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(10)
-    for (const t of TEMPLATES) expect(isTransition(t.transition ?? 'fade')).toBe(true)
-    const p = buildTemplateProject(TEMPLATES.find((t) => t.id === 'arcade-night'), 'x')
-    expect(p.output.transition).toBe('wipe')
-    expect(buildTemplateProject(TEMPLATES[0], 'x').output.transition).toBe('fade')
+describe('새 전환 효과와 사진 전환', () => {
+  it('대각선·원형·사진 전환', async () => {
+    const { PHOTO, PHOTO_MS, PHOTO_IN_MS, MAX_TRANSITION_IMAGES } = await import('../src/core/transitions.js')
+    expect(transitionFrames('diagonal').nextFrom.clipPath).toContain('polygon')
+    expect(transitionFrames('diagonal').nextTo.clipPath).toContain('polygon')
+    expect(transitionFrames('iris').nextTo.clipPath).toContain('circle')
+    expect(transitionFrames('photo').nextFrom.opacity).toBe(0)
+    expect(PHOTO_MS).toBe(PHOTO_IN_MS * 2 + PHOTO.hold)
+    expect(transitionMs('photo')).toBe(PHOTO_MS)
+    expect(MAX_TRANSITION_IMAGES).toBe(6)
+  })
+  it('사진 목록 정리: 6장까지, 디스크에서는 상대 경로만', () => {
+    const imgs = ['a.png', 'media/b.png', 'C:/x/c.png', '../evil.png', '', 5, 'd.png', 'e.png', 'f.png', 'g.png']
+    expect(normalizeOutput({ transitionImages: imgs }).transitionImages).toEqual(['a.png', 'media/b.png', 'C:/x/c.png', '../evil.png', 'd.png', 'e.png'])
+    expect(normalizeOutput({ transitionImages: imgs }, { fromDisk: true }).transitionImages).toEqual(['a.png', 'media/b.png', 'd.png', 'e.png', 'f.png', 'g.png'])
+    expect(normalizeOutput({}).transitionImages).toEqual([])
+    expect(normalizeOutput({ transition: 'photo' }).transition).toBe('photo')
+  })
+})
+describe('fx 새 항목', () => {
+  it('scroll·twinkle 정리', async () => {
+    const { normalizeFx, hasFx } = await import('../src/core/fx.js')
+    expect(normalizeFx({ scroll: 9999, twinkle: 5 })).toMatchObject({ scroll: 400, twinkle: 1 })
+    expect(hasFx(normalizeFx({ scroll: 20 }))).toBe(true)
+    expect(hasFx(normalizeFx({}))).toBe(false)
+  })
+})
+
+import { isTemplateFileName, isTemplateId, newUserTemplateId, normalizeTemplateDef, parseTemplateJson, serializeTemplate, templateFiles, projectToTemplateDef } from '../src/core/templatePack.js'
+import { TEMPLATES as ALL_T, exportDefinition, templateParts, buildTemplateProject as buildT } from '../src/core/templates.js'
+describe('템플릿 파일(.cftemplate)', () => {
+  it('파일 이름·id 검사', () => {
+    expect(isTemplateFileName('bg.jpg')).toBe(true)
+    for (const bad of ['../bg.jpg', 'a/b.png', 'a\b.png', 'bg.exe', 'bg', '.png', 'a b.png', 'x'.repeat(90) + '.png', '', null]) expect(isTemplateFileName(bad), String(bad)).toBe(false)
+    expect(isTemplateId('u-abc-1x2y')).toBe(true)
+    expect(isTemplateId('../x')).toBe(false)
+    expect(newUserTemplateId('내 템플릿 Cool!', () => 0)).toMatch(/^u-cool-/)
+    expect(newUserTemplateId('한글만', () => 0.5)).toMatch(/^u-[a-z0-9]{4}$/)
+  })
+  it('기본 템플릿을 내보냈다가 다시 읽어도 같다', () => {
+    for (const t of ALL_T) {
+      const def = exportDefinition(t)
+      const files = templateFiles(def)
+      const back = parseTemplateJson(serializeTemplate(def), files)
+      expect(back.name).toBe(t.name)
+      expect(back.wait.length).toBe(t.wait.length)
+      expect(back.transition).toBe(t.transition)
+      expect(back.chatStyle).toBeTruthy()
+    }
+  })
+  it('없는 파일·위험한 이름·잘못된 형식은 거절', () => {
+    const t = exportDefinition(ALL_T[0])
+    expect(() => normalizeTemplateDef(t, new Set())).toThrow(/들어 있지 않습니다/)
+    const evil = JSON.parse(JSON.stringify(t))
+    evil.wait[0].file = '../../evil.png'
+    expect(() => normalizeTemplateDef(evil, new Set(['../../evil.png']))).toThrow(/이름이 올바르지/)
+    expect(() => parseTemplateJson('not json', new Set())).toThrow(/읽을 수 없습니다/)
+    expect(() => parseTemplateJson(JSON.stringify({ format: 'other' }), new Set())).toThrow(/템플릿 파일이 아닙니다/)
+    expect(() => parseTemplateJson(JSON.stringify({ format: 'cueframe-template', version: 99, template: {} }), new Set())).toThrow(/새로운 버전/)
+    expect(() => normalizeTemplateDef({ name: '', wait: [] }, new Set())).toThrow()
+    expect(() => normalizeTemplateDef({ name: 'x', wait: [{ kind: 'Evil' }] }, new Set())).toThrow(/알 수 없는 레이어/)
+    expect(() => normalizeTemplateDef({ name: 'x', wait: new Array(61).fill({ kind: 'Chat' }) }, new Set())).toThrow(/너무 많습니다/)
+  })
+  it('이상한 값은 범위 안으로, 채팅창 그림은 파일에 있는 것만', () => {
+    const def = normalizeTemplateDef({ name: 'T', transition: 'nope', wait: [{ kind: 'Prop', file: 'a.png', x: 1e9, y: -1e9, w: -5, h: 1e9, fx: { glow: 9, scroll: 1e6 } }], chatStyle: { bgImage: 'missing.png', images: [{ src: 'a.png' }, { src: 'zzz.png' }] } }, new Set(['a.png']))
+    expect(def.transition).toBe('fade')
+    expect(def.wait[0]).toMatchObject({ x: 20000, y: -20000, w: 1, h: 20000, fx: { glow: 1, scroll: 400 } })
+    expect(def.chatStyle.bgImage).toBe('')
+    expect(def.chatStyle.images.map((i) => i.src)).toEqual(['a.png'])
+  })
+  it('현재 화면을 템플릿으로: 그림만 넣고 영상·위젯은 건너뜀', () => {
+    const layers = [
+      { kind: 'Background', name: '배경', mediaPath: 'C:/x/bg.png', x: 0, y: 0, width: 1920, height: 1080, opacity: 1, rotation: 0, flipX: false, fx: null },
+      { kind: 'Prop', name: '소품', mediaPath: 'C:/x/video.mp4', x: 0, y: 0, width: 10, height: 10, opacity: 1, rotation: 0, flipX: false, fx: null },
+      { kind: 'Text', name: '제목', x: 10, y: 10, width: 500, height: 100, text: { mode: 'text', content: '안녕', fontSize: 60 }, fx: null },
+      { kind: 'Text', name: '카운트', x: 10, y: 200, width: 500, height: 100, text: { mode: 'countdown' }, fx: null },
+      { kind: 'Particles', particles: { type: 'snow', count: 20 } },
+      { kind: 'Widget' },
+      { kind: 'Chat', x: 1440, y: 140, width: 440, height: 800, chat: { bgImage: 'C:/x/chatbg.png', images: [] } },
+    ]
+    const fileFor = (p) => (/\.(png)$/.test(p) ? p.split('/').pop() : null)
+    const { def, skipped } = projectToTemplateDef({ name: '내 것', waitLayers: layers, output: { transition: 'zoom' }, fileFor })
+    expect(skipped).toBe(2)
+    expect(def.wait.map((s) => s.kind)).toEqual(['Background', 'Text', 'Text', 'Particles', 'Chat'])
+    expect(def.wait[1].role).toBe('title')
+    expect(def.wait[2].role).toBe('countdown')
+    expect(def.chatStyle.bgImage).toBe('chatbg.png')
+    const ok = normalizeTemplateDef({ ...def, id: 'x' }, new Set(['bg.png', 'chatbg.png']))
+    expect(ok.transition).toBe('zoom')
+  })
+  it('일부만 적용: 채팅 모양·전환·움직임 레이어', () => {
+    const t = ALL_T.find((x) => x.id === 'sky-online')
+    const parts = templateParts(t, 'C:/t')
+    expect(parts.transition).toBe(t.transition)
+    expect(parts.chat.bgImage).toBe('')
+    expect(parts.motion.length).toBeGreaterThan(2)
+    expect(parts.motion.every((l) => l.kind === 'Particles' || l.kind === 'Prop')).toBe(true)
+    const p = buildT({ ...t, transitionImages: ['a.png'] }, 'C:/t')
+    expect(p.output.transitionImages).toEqual(['C:/t/sky-online/a.png'])
+  })
+})
+
+describe('프로젝트 파일 안전: 읽을 때 밖을 가리키는 경로 제거', () => {
+  it('채팅창 그림·전환 사진은 프로젝트 안의 상대 경로만', async () => {
+    const { parseProject } = await import('../src/core/project.js')
+    const project = {
+      version: 1,
+      name: 'x',
+      output: { transition: 'photo', transitionImages: ['media/a.png', 'C:/Users/me/secret.png', '//server/share/x.png', '../x.png'] },
+      scenes: [{ id: 's1', name: 's', layers: [{ id: 'c1', kind: 'Chat', chat: { bgImage: '//server/share/bg.png', images: [{ src: 'media/ok.png' }, { src: 'C:/Windows/x.png' }, { src: '//evil/x.png' }] } }] }],
+      activeSceneId: 's1',
+    }
+    const r = parseProject(JSON.stringify(project)).project
+    expect(r.output.transitionImages).toEqual(['media/a.png'])
+    const chat = r.scenes[0].layers.find((l) => l.kind === 'Chat').chat
+    expect(chat.bgImage).toBe('')
+    expect(chat.images.map((i) => i.src)).toEqual(['media/ok.png'])
   })
 })

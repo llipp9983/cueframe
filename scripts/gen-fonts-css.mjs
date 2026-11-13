@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const FONTS = ['jua', 'black-han-sans', 'do-hyeon', 'gowun-dodum']
+const LATIN_ONLY = { orbitron: [400, 700], 'press-start-2p': [400], bungee: [400], fredoka: [400, 700] } // 영문 전용 제목 글꼴
 const out = ['/* scripts/gen-fonts-css.mjs 로 만든 파일 — 직접 고치지 마세요 */']
 for (const f of FONTS) {
   for (const sub of ['korean-400.css', 'latin-400.css']) {
@@ -14,6 +15,16 @@ for (const f of FONTS) {
       const m = block.match(/url\(\.\/files\/([^)]+?\.woff2)\)/)
       if (!m) continue
       out.push(block.replace(/src:[^;]+;/, `src: url('@fontsource/${f}/files/${m[1]}') format('woff2');`))
+    }
+  }
+}
+for (const [f, weights] of Object.entries(LATIN_ONLY)) {
+  for (const w of weights) {
+    const file = path.join('node_modules', '@fontsource', f, 'latin-' + w + '.css')
+    const css = fs.readFileSync(file, 'utf8')
+    for (const block of css.match(/@font-face\s*{[^}]*}/g) ?? []) {
+      const m = block.match(/url\(\.\/files\/([^)]+?\.woff2)\)/)
+      if (m) out.push(block.replace(/src:[^;]+;/, `src: url('@fontsource/${f}/files/${m[1]}') format('woff2');`))
     }
   }
 }
