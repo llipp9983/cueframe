@@ -2,6 +2,7 @@
 // 장면이 여러 개여도 첫 장면은 예전 형식의 `layers`에도 같이 적어, 이전 버전이 열 수 있게 한다.
 import { MAX_LAYERS, normalizeLayer, newId, isSafeRelativePath } from './layer.js'
 import { normalizeChatStyle } from './chatStyle.js'
+import { normalizeAlert } from './donation.js'
 import { normalizeTextStyle } from './textStyle.js'
 import { normalizeFx } from './fx.js'
 import { normalizeParticles } from './particles.js'
@@ -144,6 +145,7 @@ export function serializeLayer(l) {
     chat: l.kind === 'Chat' ? normalizeChatStyle(l.chat) : null,
     text: l.kind === 'Text' ? normalizeTextStyle(l.text) : undefined,
     particles: l.kind === 'Particles' ? normalizeParticles(l.particles) : undefined,
+    alert: l.kind === 'Alert' ? normalizeAlert(l.alert) : undefined,
     fx: l.fx ? normalizeFx(l.fx) : undefined,
     flipX: l.flipX,
   }

@@ -1,4 +1,5 @@
 // YouTube 라이브 채팅: 주소 해석, 메시지 변환, 사용량(할당량) 계산. 화면·네트워크와 무관한 순수 함수.
+import { cleanDonation } from './donation.js'
 export const YT_SCOPE = 'https://www.googleapis.com/auth/youtube.readonly'
 export const YT_DAILY_QUOTA = 10000 // 구글 기본값(프로젝트당 하루)
 export const POLL_COST = 5 // liveChatMessages.list 한 번
@@ -43,6 +44,7 @@ export function mapChatItem(item, now = Date.now()) {
   const nick = clean(a.displayName, 40) || '익명'
   const time = Date.parse(sn.publishedAt) || now
   let text = null
+  let donation = null
   switch (sn.type) {
     case 'textMessageEvent':
       text = clean(sn.textMessageDetails?.messageText ?? sn.displayMessage, 500)
@@ -50,15 +52,18 @@ export function mapChatItem(item, now = Date.now()) {
     case 'superChatEvent': {
       const d = sn.superChatDetails ?? {}
       text = `[슈퍼챗 ${clean(d.amountDisplayString, 30)}] ${clean(d.userComment, 400)}`.trim()
+      donation = { kind: 'superchat', amount: d.amountDisplayString, text: d.userComment }
       break
     }
     case 'superStickerEvent': {
       const d = sn.superStickerDetails ?? {}
       text = `[슈퍼스티커 ${clean(d.amountDisplayString, 30)}]`
+      donation = { kind: 'sticker', amount: d.amountDisplayString }
       break
     }
     case 'newSponsorEvent':
       text = '멤버십에 가입했습니다 🎉'
+      donation = { kind: 'member', text: '멤버십에 가입했습니다' }
       break
     case 'memberMilestoneChatEvent': {
       const d = sn.memberMilestoneChatDetails ?? {}
@@ -72,7 +77,8 @@ export function mapChatItem(item, now = Date.now()) {
       return null
   }
   if (!text) return null
-  return { id: `y${item.id}`, nick, text, streamer: a.isChatOwner === true, time, platform: 'youtube' }
+  const dn = donation ? cleanDonation(donation) : null
+  return { id: `y${item.id}`, nick, text, streamer: a.isChatOwner === true, time, platform: 'youtube', ...(dn ? { donation: dn } : {}) }
 }
 
 /** 처음 받은 묶음에는 오래된 채팅이 많다. 최근 것만 화면에 올린다. */

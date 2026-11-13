@@ -1,6 +1,7 @@
 // YouTube 라이브 채팅(간편 연결): 로그인·API 키 없이, 시청자가 보는 것과 같은 공개 채팅 주소를 읽는다.
 // 비공식 방식이라 YouTube가 바꾸면 달라질 수 있다. 화면·네트워크와 무관한 순수 함수.
 import { replaceUnknownEmoji, cleanEmojis } from './emoji.js'
+import { cleanDonation } from './donation.js'
 
 const ID_RE = /^[A-Za-z0-9_-]{11}$/
 const HANDLE_RE = /^@[A-Za-z0-9._-]{3,60}$/
@@ -124,7 +125,7 @@ export function mapWebItem(item, now = Date.now()) {
   const badges = (r.authorBadges ?? []).map((b) => b?.liveChatAuthorBadgeRenderer?.icon?.iconType)
   const streamer = badges.includes('OWNER')
   const time = Number(r.timestampUsec) ? Math.round(Number(r.timestampUsec) / 1000) : now
-  const base = (nick, text, emojis) => ({ id: `y${id}`, nick: clean(nick, 40) || '익명', text, ...(emojis && Object.keys(emojis).length ? { emojis } : {}), streamer, time, platform: 'youtube' })
+  const base = (nick, text, emojis, donation) => ({ id: `y${id}`, nick: clean(nick, 40) || '익명', text, ...(emojis && Object.keys(emojis).length ? { emojis } : {}), streamer, time, platform: 'youtube', ...(donation ? { donation: cleanDonation(donation) } : {}) })
   switch (type) {
     case 'liveChatTextMessageRenderer': {
       const { text, emojis } = runsToText(r.message?.runs)
@@ -132,18 +133,21 @@ export function mapWebItem(item, now = Date.now()) {
     }
     case 'liveChatPaidMessageRenderer': {
       const { text, emojis } = runsToText(r.message?.runs)
-      return base(simple(r.authorName), `[슈퍼챗 ${clean(simple(r.purchaseAmountText), 30)}] ${text}`.trim(), emojis)
+      const amount = clean(simple(r.purchaseAmountText), 30)
+      return base(simple(r.authorName), `[슈퍼챗 ${amount}] ${text}`.trim(), emojis, { kind: 'superchat', amount, text })
     }
     case 'liveChatPaidStickerRenderer':
-      return base(simple(r.authorName), `[슈퍼스티커 ${clean(simple(r.purchaseAmountText), 30)}]`)
+      const amount = clean(simple(r.purchaseAmountText), 30)
+      return base(simple(r.authorName), `[슈퍼스티커 ${amount}]`, undefined, { kind: 'sticker', amount })
     case 'liveChatMembershipItemRenderer': {
       const sub = runsToText(r.headerSubtext?.runs).text
       const msg = runsToText(r.message?.runs).text
-      return base(simple(r.authorName), `${sub || '멤버십에 가입했습니다 🎉'} ${msg}`.trim())
+      return base(simple(r.authorName), `${sub || '멤버십에 가입했습니다 🎉'} ${msg}`.trim(), undefined, { kind: 'member', text: sub || '멤버십에 가입했습니다', title: '' })
     }
     case 'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer': {
       const h = r.header?.liveChatSponsorshipsHeaderRenderer
-      return base(simple(h?.authorName ?? r.authorName), clean(runsToText(h?.primaryText?.runs).text || '멤버십을 선물했습니다 🎁', 200))
+      const gift = clean(runsToText(h?.primaryText?.runs).text || '멤버십을 선물했습니다 🎁', 200)
+      return base(simple(h?.authorName ?? r.authorName), gift, undefined, { kind: 'member', text: gift })
     }
     default:
       return null

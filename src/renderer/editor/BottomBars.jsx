@@ -2,7 +2,7 @@ import { useStore } from '../store.js'
 import { api } from '../api.js'
 import Icon from '../theme/Icon.jsx'
 import Pop, { PopItem } from './Pop.jsx'
-import { addBackground, addTable, addProps, addChat, addText, addWidget, addParticles } from './actions.js'
+import { addBackground, addTable, addProps, addChat, addText, addWidget, addAlert, addParticles } from './actions.js'
 import { showConnect } from '../dialogs/dialogStore.js'
 import { RESOLUTIONS } from '../../core/project.js'
 import { TRANSITIONS, MAX_TRANSITION_IMAGES } from '../../core/transitions.js'
@@ -96,6 +96,7 @@ export default function BottomBars() {
             <PopItem close={close} label="카운트다운" hint="방송까지 남은 시간" onClick={() => addText('countdown')} />
             <div className="menu-sep" />
             <PopItem close={close} label="분위기 효과" hint="눈·꽃잎·별 떨어짐" onClick={() => addParticles('snow')} />
+            <PopItem close={close} label="후원 알림 추가" hint="치지직·SOOP·YouTube" onClick={addAlert} />
             <PopItem close={close} label="치지직 위젯…" hint="후원 알림·영상 후원" onClick={addWidget} />
           </>
         )}
@@ -171,6 +172,7 @@ export default function BottomBars() {
           <label className="check"><input type="checkbox" checked={diag} onChange={(e) => set({ diag: e.target.checked })} />진단 표시 (출력 창에 fps)</label>
         </div>
       </Pop>
+      <button onClick={() => api.remote.open()} title="후원이 들어온 기록을 보고, 더블클릭으로 다시 띄웁니다">후원 리모컨</button>
       <button className="accent" onClick={() => api.openOutput({ ...output })}>출력 창 열기</button>
     </div>
   )

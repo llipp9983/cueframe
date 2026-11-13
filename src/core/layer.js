@@ -3,12 +3,13 @@ import { clamp, num } from './util.js'
 import { normalizeFx } from './fx.js'
 import { normalizeTextStyle } from './textStyle.js'
 import { normalizeParticles } from './particles.js'
+import { normalizeAlert } from './donation.js'
 
 export { clamp, num }
 export const CANVAS_W = 1920
 export const CANVAS_H = 1080
-export const KINDS = ['Background', 'Table', 'Prop', 'Particles', 'Text', 'Chat', 'Widget']
-export const KIND_LABEL = { Background: '배경', Table: '테이블', Prop: '소품', Particles: '분위기 효과', Text: '문구', Chat: '채팅', Widget: '위젯' }
+export const KINDS = ['Background', 'Table', 'Prop', 'Particles', 'Text', 'Chat', 'Widget', 'Alert']
+export const KIND_LABEL = { Background: '배경', Table: '테이블', Prop: '소품', Particles: '분위기 효과', Text: '문구', Chat: '채팅', Widget: '위젯', Alert: '후원 알림' }
 export const MAX_LAYERS = 500
 export const MAX_COORD = 100000
 export const MIN_SIZE = 8
@@ -41,6 +42,7 @@ export function createLayer(kind, props = {}) {
     chat: null,
     text: null,
     particles: null,
+    alert: null,
     fx: null,
     flipX: false,
     ...props,
@@ -85,6 +87,7 @@ export function normalizeLayer(raw, { fromDisk = false } = {}) {
     chat: kind === 'Chat' ? raw.chat ?? null : null,
     text: kind === 'Text' ? normalizeTextStyle(raw.text) : null,
     particles: kind === 'Particles' ? normalizeParticles(raw.particles) : null,
+    alert: kind === 'Alert' ? normalizeAlert(raw.alert) : null,
     fx: raw.fx ? normalizeFx(raw.fx) : null,
     flipX: raw.flipX === true,
   }

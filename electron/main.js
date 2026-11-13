@@ -67,6 +67,9 @@ if (!app.requestSingleInstanceLock()) {
 
 let editor = null
 let output = null
+let remote = null // 후원 리모컨 창
+let remoteList = [] // 편집기가 보내 준 후원 기록(리모컨이 고른 것을 여기서 찾아 출력 창에 보낸다)
+let alertNow = null // 출력 창이 알려 준 지금 나오는 알림
 let outputConf = { width: 1920, height: 1080, fps: 30 }
 let outputState = null
 let outputChat = []
@@ -80,8 +83,8 @@ const broadcast = (ch, data) => {
 }
 
 function pageUrl(view) {
-  const file = view === 'output' ? 'output.html' : 'index.html'
-  if (DEV) return `http://localhost:5173/${view === 'output' ? file : ''}`
+  const file = view === 'output' ? 'output.html' : view === 'remote' ? 'remote.html' : 'index.html'
+  if (DEV) return `http://localhost:5173/${view ? file : ''}`
   const dist = TEST_DATA && process.env.CUEFRAME_DIST ? path.resolve(process.env.CUEFRAME_DIST) : path.join(__dirname, '..', 'dist')
   return pathToFileURL(path.join(dist, file)).toString()
 }
@@ -116,6 +119,7 @@ function createEditor() {
   editor.on('closed', () => {
     editor = null
     if (output && !output.isDestroyed()) output.destroy()
+    if (remote && !remote.isDestroyed()) remote.destroy()
   })
   editor.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 }
@@ -201,6 +205,37 @@ function openOutput(conf) {
     broadcast('output:closed')
   })
   broadcast('output:opened')
+}
+
+// ── 후원 리모컨 창
+function openRemote() {
+  if (remote && !remote.isDestroyed()) {
+    if (remote.isMinimized()) remote.restore()
+    remote.show()
+    remote.focus()
+    return
+  }
+  remote = new BrowserWindow({
+    ...(HIDDEN ? { x: -11000, y: -12000 } : {}),
+    width: 460,
+    height: 720,
+    minWidth: 340,
+    minHeight: 420,
+    backgroundColor: '#121416',
+    title: '후원 리모컨',
+    icon: ICON,
+    autoHideMenuBar: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
+  })
+  remote.setMenu(null)
+  remote.loadURL(pageUrl('remote'))
+  remote.on('page-title-updated', (e) => e.preventDefault())
+  remote.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  remote.on('closed', () => {
+    remote = null
+    broadcast('remote:closed')
+  })
+  broadcast('remote:opened')
 }
 
 // ── 파일 선택
@@ -427,6 +462,40 @@ function registerIpc() {
     send(output, 'output:chat', outputChat)
   })
   h('output:getChat', () => outputChat)
+
+  // 후원 리모컨: 편집기가 후원 기록을 보내고, 출력 창이 지금 알림을 알리고, 리모컨이 다시 띄우기를 시킨다
+  h('remote:open', () => openRemote())
+  h('remote:close', () => remote?.close())
+  h('remote:isOpen', () => !!(remote && !remote.isDestroyed()))
+  const from = (win, e) => !!win && !win.isDestroyed() && e?.sender === win.webContents
+  ipcMain.on('remote:list', (e, list) => {
+    if (!from(editor, e) || !Array.isArray(list)) return
+    remoteList = list.slice(-300)
+    send(remote, 'remote:list', remoteList)
+  })
+  ipcMain.on('alert:now', (e, now) => {
+    if (!from(output, e)) return
+    alertNow = now && typeof now === 'object' ? { id: typeof now.id === 'string' ? now.id.slice(0, 100) : null, queue: Math.max(0, Math.min(999, Number(now.queue) || 0)), startedAt: Number(now.startedAt) || 0, seconds: Math.max(0, Math.min(60, Number(now.seconds) || 0)) } : null
+    send(remote, 'alert:now', alertNow)
+  })
+  ipcMain.handle('remote:get', (e) => {
+    if (!from(remote, e)) throw new Error('허용되지 않은 요청입니다.')
+    return { list: remoteList, now: alertNow, outputOpen: !!(output && !output.isDestroyed()) }
+  })
+  ipcMain.on('remote:show', (e, id) => {
+    if (!from(remote, e) || typeof id !== 'string') return
+    const m = remoteList.find((x) => x.id === id)
+    if (m) send(output, 'alert:show', m)
+  })
+  ipcMain.on('remote:skip', (e) => from(remote, e) && send(output, 'alert:skip'))
+  ipcMain.on('remote:clearQueue', (e) => from(remote, e) && send(output, 'alert:clearQueue'))
+  ipcMain.on('remote:clearList', (e) => {
+    if (!from(remote, e)) return
+    remoteList = []
+    send(remote, 'remote:list', remoteList)
+    send(editor, 'remote:clearList')
+  })
+  ipcMain.on('remote:pin', (e, v) => from(remote, e) && remote.setAlwaysOnTop(!!v))
   h('output:info', () => ({ ...outputConf, scale: scaleOf() }))
 
   // 치지직

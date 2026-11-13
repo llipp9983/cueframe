@@ -4,6 +4,7 @@ import { Num, SliderRow, CheckRow } from './fields.jsx'
 import ChatPanel from './ChatPanel.jsx'
 import TextPanel from './TextPanel.jsx'
 import WidgetPanel from './WidgetPanel.jsx'
+import AlertPanel from './AlertPanel.jsx'
 import ParticlesPanel from './ParticlesPanel.jsx'
 import { ColorRow } from './fields.jsx'
 import Collapse from './Collapse.jsx'
@@ -85,7 +86,7 @@ export default function PropsPanel() {
       <Collapse id={cid('shape')} title="모양" defaultOpen={!isChat}>
         {geometry && <SliderRow label="회전 (도)" value={l.rotation} min={0} max={359} onChange={(v) => !l.locked && patchLayer(l.id, { rotation: Math.round(v) % 360 }, 'rotation')} fmt={(v) => `${Math.round(v)}°`} />}
         <SliderRow label="투명도" value={l.opacity} min={0} max={1} step={0.01} onChange={(v) => patchLayer(l.id, { opacity: v }, 'opacity')} fmt={(v) => `${Math.round(v * 100)}%`} />
-        {geometry && l.kind !== 'Chat' && l.kind !== 'Widget' && <CheckRow label="비율 유지" value={l.keepAspect} onChange={(v) => patchLayer(l.id, { keepAspect: v })} />}
+        {geometry && l.kind !== 'Chat' && l.kind !== 'Widget' && l.kind !== 'Alert' && <CheckRow label="비율 유지" value={l.keepAspect} onChange={(v) => patchLayer(l.id, { keepAspect: v })} />}
         {tableLike && <CheckRow label="좌우 반전" value={l.flipX} onChange={(v) => patchLayer(l.id, { flipX: v })} />}
         <button style={{ marginTop: 4 }} disabled={l.rotation === 0 && l.opacity === 1 && !l.flipX} onClick={() => patchLayer(l.id, { rotation: 0, opacity: 1, flipX: false })} title="회전, 투명도, 좌우 반전을 처음 상태로">모양 초기화</button>
       </Collapse>
@@ -109,6 +110,7 @@ export default function PropsPanel() {
       {l.kind === 'Particles' && l.particles && <ParticlesPanel layer={l} />}
       {l.kind === 'Text' && l.text && <TextPanel layer={l} />}
       {l.kind === 'Widget' && <WidgetPanel layer={l} />}
+      {l.kind === 'Alert' && l.alert && <AlertPanel layer={l} />}
     </>
   )
 

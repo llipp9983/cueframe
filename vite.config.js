@@ -27,6 +27,6 @@ export default defineConfig({
   plugins: [react(), cspPlugin],
   server: { port: 5173, strictPort: true },
   // 편집기(index.html)와 방송 출력 창(output.html)을 따로 만들어 출력 창은 편집기 코드를 읽지 않게 한다
-  build: { outDir: 'dist', emptyOutDir: true, rollupOptions: { input: { main: resolve('index.html'), output: resolve('output.html') } } },
+  build: { outDir: 'dist', emptyOutDir: true, rollupOptions: { input: { main: resolve('index.html'), output: resolve('output.html'), remote: resolve('remote.html') } } },
   test: { environment: 'node', include: ['tests/**/*.test.js'] },
 })

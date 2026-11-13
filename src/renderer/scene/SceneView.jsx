@@ -4,6 +4,7 @@ import { fxFilter, hasFx } from '../../core/fx.js'
 import ChatWindow from './ChatWindow.jsx'
 import TextLayer from './TextLayer.jsx'
 import ParticlesLayer from './ParticlesLayer.jsx'
+import AlertLayer from './AlertLayer.jsx'
 import { mediaUrl } from './media.js'
 
 function Media({ layer, url, onError, onOk }) {
@@ -88,6 +89,7 @@ const LayerNode = memo(function LayerNode({ layer: l, projectDir, chat, missing,
   if (l.kind === 'Chat') inner = <ChatWindow style={l.chat} messages={chat} projectDir={projectDir} />
   else if (l.kind === 'Text') inner = <TextLayer style={l.text} />
   else if (l.kind === 'Particles') inner = <ParticlesLayer style={l.particles} height={l.height} seed={l.id.length + l.id.charCodeAt(0)} />
+  else if (l.kind === 'Alert') inner = <AlertLayer style={l.alert} chat={chat} live={widgetLive} width={l.width} height={l.height} />
   else if (l.kind === 'Widget') inner = <WidgetBox layer={l} live={widgetLive} url={widgetUrl} />
   else if (!url || missing) inner = <Placeholder layer={l} />
   else inner = <Media layer={l} url={url} onError={() => onMedia?.(l, false)} onOk={() => onMedia?.(l, true)} />
@@ -111,7 +113,7 @@ export function Stage({ layers, projectDir, chat, scale = 1, missing = {}, onMed
   return (
     <div style={{ position: 'absolute', left: 0, top: 0, width: CANVAS_W, height: CANVAS_H, overflow: 'hidden', background: '#000', transformOrigin: '0 0', transform: `scale(${scale})`, ...style }}>
       {layers.map((l) => (
-        <LayerNode key={l.id} layer={l} projectDir={projectDir} chat={l.kind === 'Chat' ? chat : undefined} missing={!!missing[l.id]} onMedia={onMedia} widgetLive={widgetLive} widgetUrl={widgetUrls[l.id]} />
+        <LayerNode key={l.id} layer={l} projectDir={projectDir} chat={l.kind === 'Chat' || l.kind === 'Alert' ? chat : undefined} missing={!!missing[l.id]} onMedia={onMedia} widgetLive={widgetLive} widgetUrl={widgetUrls[l.id]} />
       ))}
     </div>
   )

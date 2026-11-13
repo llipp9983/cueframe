@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import { secureRead, secureWrite, secureDelete, getSettings, setSettings } from './store.js'
 import { info, warn, error } from './log.js'
 import { cleanEmojis, replaceUnknownEmoji } from '../src/core/emoji.js'
+import { donationMessage, wonText } from '../src/core/donation.js'
 
 const require = createRequire(import.meta.url)
 const API = 'https://openapi.chzzk.naver.com'
@@ -280,6 +281,7 @@ function openSocket(url, token, my) {
   const s = io(url, { transports: ['websocket'], forceNew: true, reconnection: false, timeout: 10000, query: { EIO: 3 } })
   socket = s
   let subscribed = false
+  let donationOk = false
   const subTimer = setTimeout(() => {
     if (!subscribed && my === sessionToken) scheduleRetry('세션 응답이 없습니다')
   }, 10000)
@@ -298,11 +300,16 @@ function openSocket(url, token, my) {
         return setStatus('error', '채팅 조회 권한이 없습니다')
       }
       if (!r.ok) return scheduleRetry('채팅 구독에 실패했습니다')
+      // 후원 알림(후원·영상 후원·미션): 권한이 없으면 채팅만 연결한다
+      const dr = await api('POST', '/open/v1/sessions/events/subscribe/donation', { token, query: { sessionKey: msg.data.sessionKey } })
+      if (my !== sessionToken) return
+      donationOk = dr.ok
+      if (!dr.ok) warn(`치지직 후원 구독 실패 HTTP ${dr.status}`)
       subscribed = true
       clearTimeout(subTimer)
       connectedAt = Date.now()
-      setStatus('connected', '연결됨')
-      info('치지직 채팅 연결됨')
+      setStatus('connected', donationOk ? '연결됨' : '연결됨 (후원 알림 권한 없음)')
+      info(`치지직 채팅 연결됨 (후원 ${donationOk ? '켜짐' : '꺼짐'})`)
     } else if (type === 'revoked') {
       tokens = null
       secureDelete('credentials.bin')
@@ -312,6 +319,16 @@ function openSocket(url, token, my) {
     } else if (type === 'unsubscribed') {
       scheduleRetry('구독이 해제되었습니다')
     }
+  })
+  s.on('DONATION', (raw) => {
+    const d = parse(raw)
+    if (!d) return
+    const t = String(d.donationType ?? '').toUpperCase()
+    const kind = t.includes('MISSION') ? 'mission' : t.includes('VIDEO') ? 'video' : 'cash'
+    const emojis = cleanEmojis(d.emojis)
+    const text = replaceUnknownEmoji(String(d.donationText ?? '').replace(/[​-‏‪-‮⁦-⁩﻿]/g, '').slice(0, 300), emojis)
+    const m = donationMessage({ id: `c${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, platform: 'chzzk', nick: d.donatorNickname, kind, amount: wonText(d.payAmount), text, emojis })
+    if (m) emit('chat:message', m)
   })
   s.on('CHAT', (raw) => {
     const d = parse(raw)

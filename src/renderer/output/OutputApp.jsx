@@ -134,7 +134,7 @@ export default function OutputApp() {
             <>
               {prev && (
                 <div style={{ ...WRAP, ...(fading ? fr.prevTo : fr.prevFrom), transition: move }}>
-                  <Stage layers={prev.layers.filter((l) => l.kind !== 'Widget')} projectDir={prev.projectDir} chat={chat} scale={scale} />
+                  <Stage layers={prev.layers.filter((l) => l.kind !== 'Widget' && l.kind !== 'Alert')} projectDir={prev.projectDir} chat={chat} scale={scale} />
                 </div>
               )}
               <div style={prev ? { ...WRAP, ...(fading ? fr.nextTo : fr.nextFrom), transition: move } : { position: 'absolute', inset: 0 }}>

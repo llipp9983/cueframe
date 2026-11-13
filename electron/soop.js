@@ -4,7 +4,7 @@ import { app } from 'electron'
 import WebSocket from 'ws'
 import { getSettings, setSettings } from './store.js'
 import { info, warn } from './log.js'
-import { parseSoopTarget, parseBno, parseChannelInfo, soopWsUrl, connectPacket, joinPacket, pingPacket, parseFrame, mapSoopFrame, CMD } from '../src/core/soop.js'
+import { parseSoopTarget, parseBno, parseChannelInfo, soopWsUrl, connectPacket, joinPacket, pingPacket, parseFrame, mapSoopFrames, CMD } from '../src/core/soop.js'
 
 const TEST = !app.isPackaged && process.env.CUEFRAME_TEST === '1'
 const pick = (name, real) => (TEST && process.env[name]) || real
@@ -139,8 +139,7 @@ async function start(id) {
         info(`SOOP 채팅 연결: ${id}`)
         setStatus('connected', `연결됨 · ${(title || id).slice(0, 28)}`)
       }
-      const m = mapSoopFrame(fr, { bjId: ci.bjId, now: Date.now(), seq: seq++ })
-      if (m) emit('chat:message', m)
+      for (const m of mapSoopFrames(fr, { bjId: ci.bjId, now: Date.now(), seq: seq++ })) emit('chat:message', m)
     })
     w.on('close', () => {
       if (my === session && want) retry(my, id, joined ? '연결이 끊겼습니다' : '채팅 서버에 연결하지 못했습니다')

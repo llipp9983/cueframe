@@ -4,8 +4,9 @@ import { createLayer, isVideoPath, fileNameOf } from '../../core/layer.js'
 import { parseProject, serializeProject } from '../../core/project.js'
 import { normalizeChatStyle } from '../../core/chatStyle.js'
 import { BUILTIN_PRESETS } from '../../core/presets.js'
+import { donationMessage, SAMPLE_DONATIONS } from '../../core/donation.js'
 import {
-  insertLayer, hasKind, makeBackground, makeTable, makeProp, makeChat, makeText, makeWidget, makeParticles, referenceTable, surfaceY, placeOnSurface,
+  insertLayer, hasKind, makeBackground, makeTable, makeProp, makeChat, makeText, makeWidget, makeAlert, makeParticles, referenceTable, surfaceY, placeOnSurface,
   duplicateLayers, moveLayers, removeLayers, canDuplicate,
 } from '../../core/scene.js'
 import { hitTest } from '../../core/geometry.js'
@@ -360,6 +361,25 @@ export function addText(mode) {
   const layer = makeText(mode)
   if (mode === 'countdown') layer.text = { ...layer.text, targetAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() } // 처음엔 10분 뒤로
   st().commit(insertLayer(st().layers, layer), { selection: [layer.id] })
+}
+
+export function addAlert() {
+  if (hasKind(st().layers, 'Alert')) {
+    const l = st().layers.find((x) => x.kind === 'Alert')
+    st().set({ selectedIds: [l.id] })
+    return
+  }
+  const layer = makeAlert()
+  st().commit(insertLayer(st().layers, layer), { selection: [layer.id] })
+}
+
+/** 후원 알림 시험: 가짜 후원을 하나씩 채팅으로 보낸다(채팅창에도 나온다) */
+export function testAlerts(only) {
+  const list = only ? SAMPLE_DONATIONS.filter((d) => d.kind === only) : SAMPLE_DONATIONS
+  list.forEach((d, i) => {
+    const m = donationMessage({ id: `t${Date.now()}-${i}`, ...d, time: Date.now() })
+    if (m) st().addChat(m)
+  })
 }
 
 export async function addWidget() {

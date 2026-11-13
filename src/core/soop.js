@@ -1,11 +1,12 @@
 // SOOP(구 아프리카TV) 채팅: 주소 해석, 패킷 만들기·읽기, 메시지 변환. 화면·네트워크와 무관한 순수 함수.
+import { donationMessage } from './donation.js'
 // 비공식 방식(SOOP 채팅 서버에 시청자처럼 접속)이라, SOOP이 프로토콜을 바꾸면 달라질 수 있다.
 export const F = String.fromCharCode(12) // 필드 구분자
 export const TAB = String.fromCharCode(9)
 export const ESC = String.fromCharCode(27) + TAB // 패킷 머리
 export const PROTOCOL_VERSION = '16'
 
-export const CMD = { PING: '0000', CONNECT: '0001', JOIN: '0002', CHAT: '0005', BALLOON: '0018' }
+export const CMD = { PING: '0000', CONNECT: '0001', JOIN: '0002', CHAT: '0005', BALLOON: '0018', ADBALLOON: '0087', VIDEO_BALLOON: '0105', MISSION: '0121', MISSION_SETTLE: '0125' }
 
 const ID_RE = /^[a-z0-9_]{2,20}$/
 
@@ -71,12 +72,56 @@ export function mapSoopFrame(frame, ctx = {}) {
     const senderId = String(f[1] ?? '')
     return { id: `o${now}-${seq}`, nick: clean(f[5], 40) || '익명', text, streamer: !!bjId && senderId.toLowerCase() === bjId.toLowerCase(), time: now, platform: 'soop' }
   }
+  const base = { id: `o${now}-${seq}` }
+  const count = (v) => {
+    const n = Number.parseInt(v, 10)
+    return Number.isFinite(n) && n > 0 ? `${n.toLocaleString('en-US')}개` : ''
+  }
   if (frame.code === CMD.BALLOON) {
     if (f.length < 10) return null
-    const count = Number.parseInt(f[3], 10)
-    return { id: `o${now}-${seq}`, nick: clean(f[2], 40) || '익명', text: `[별풍선 ${Number.isFinite(count) ? count : ''}개]`.replace('  ', ' '), streamer: false, time: now, platform: 'soop' }
+    const c = count(f[3])
+    const m = donationMessage({ id: base.id, platform: 'soop', nick: f[2], kind: 'balloon', amount: c, time: now })
+    return m && { ...m, text: `[별풍선${c ? ' ' + c : ''}]` }
+  }
+  if (frame.code === CMD.VIDEO_BALLOON) {
+    if (f.length < 14) return null
+    return donationMessage({ id: base.id, platform: 'soop', nick: f[3], kind: 'video', amount: count(f[4]), time: now })
+  }
+  if (frame.code === CMD.ADBALLOON) {
+    if (f.length < 14) return null
+    return donationMessage({ id: base.id, platform: 'soop', nick: f[3], kind: 'adballoon', amount: count(f[9]), text: f[4], title: f[6], time: now })
+  }
+  if (frame.code === CMD.MISSION) {
+    let j = null
+    try {
+      j = JSON.parse(f[0])
+    } catch {}
+    const title = clean(j?.title, 60)
+    if (!j || typeof j !== 'object' || !title) return null
+    const status = { FAIL: '실패', SUCCESS: '성공', DONE: '성공', START: '시작', ING: '진행 중' }[String(j.mission_status ?? '').toUpperCase()] ?? ''
+    return donationMessage({ id: base.id, platform: 'soop', nick: '미션', kind: 'mission', title, text: status, time: now })
   }
   return null
+}
+
+/** 한 프레임에서 나올 수 있는 모든 메시지(미션 정산은 여러 명). */
+export function mapSoopFrames(frame, ctx = {}) {
+  if (frame?.code === CMD.MISSION_SETTLE) {
+    const { now = Date.now(), seq = 0 } = ctx
+    let j = null
+    try {
+      j = JSON.parse(frame.fields[0])
+    } catch {}
+    const list = Array.isArray(j?.list) ? j.list.slice(0, 5) : []
+    return list
+      .map((e, i) => {
+        const n = Number.parseInt(e?.[2], 10)
+        return Array.isArray(e) && Number.isFinite(n) && n > 0 ? donationMessage({ id: `o${now}-${seq}-${i}`, platform: 'soop', nick: e[1], kind: 'mission', amount: `${n.toLocaleString('en-US')}개`, text: '미션 후원', time: now }) : null
+      })
+      .filter(Boolean)
+  }
+  const m = mapSoopFrame(frame, ctx)
+  return m ? [m] : []
 }
 
 /** player_live_api 응답 → 채팅 서버 정보 또는 오류 */

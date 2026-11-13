@@ -30,6 +30,7 @@ export const useStore = create((set, get) => ({
   analysis: {}, // mediaPath -> {surface, base}
   missing: {}, // layerId -> true
   chatBuffer: [],
+  donations: [], // 후원 기록(후원 리모컨에 보여 줌)
   update: { state: 'none' },
   outputOpen: false,
   updateHidden: false,
@@ -240,10 +241,13 @@ export const useStore = create((set, get) => ({
 
   // ── 채팅
   addChat(msg) {
-    set({ chatBuffer: pushMessage(get().chatBuffer, msg) })
+    set({ chatBuffer: pushMessage(get().chatBuffer, msg), ...(msg.donation ? { donations: [...get().donations, msg].slice(-300) } : {}) })
   },
   clearChat() {
     set({ chatBuffer: [] })
+  },
+  clearDonations() {
+    set({ donations: [] })
   },
   set,
 }))

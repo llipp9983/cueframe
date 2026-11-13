@@ -127,6 +127,7 @@ export default function EditorApp() {
   useEffect(() => {
     let raf = 0
     let chatRaf = 0
+    let remoteRaf = 0
     const live = (s) => {
       const id = s.liveFollow ? s.activeSceneId : s.liveSceneId
       if (id === s.activeSceneId) return { id, layers: s.layers }
@@ -143,6 +144,12 @@ export default function EditorApp() {
       chatRaf = 0
       api.sendOutputChat(useStore.getState().chatBuffer.slice(-50)) // 화면에 쓰는 건 최대 50개
     }
+    const pushRemote = () => {
+      remoteRaf = 0
+      api.sendRemoteList(useStore.getState().donations)
+    }
+    const offClear = api.onRemoteClearList(() => useStore.getState().clearDonations())
+    const offOpen = api.onRemoteOpened(() => pushRemote())
     const unsub = useStore.subscribe((s, p) => {
       const a = live(s)
       const b = live(p)
@@ -150,11 +157,16 @@ export default function EditorApp() {
         if (!raf) raf = requestAnimationFrame(push)
       }
       if (s.chatBuffer !== p.chatBuffer && !chatRaf) chatRaf = requestAnimationFrame(pushChat)
+      if (s.donations !== p.donations && !remoteRaf) remoteRaf = requestAnimationFrame(pushRemote)
     })
     push()
     pushChat()
+    pushRemote()
     return () => {
       unsub()
+      offClear()
+      offOpen()
+      cancelAnimationFrame(remoteRaf)
       cancelAnimationFrame(raf)
       cancelAnimationFrame(chatRaf)
     }
