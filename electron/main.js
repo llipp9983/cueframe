@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen, Menu, session } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen, Menu, session, globalShortcut } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -69,6 +69,7 @@ if (!app.requestSingleInstanceLock()) {
 let editor = null
 let output = null
 let remote = null // 후원 리모컨 창
+let remoteScenes = { scenes: [], liveId: null } // 편집기가 보내 준 장면 목록(리모컨의 장면 버튼용)
 let remoteList = [] // 편집기가 보내 준 후원 기록(리모컨이 고른 것을 여기서 찾아 출력 창에 보낸다)
 let alertNow = null // 출력 창이 알려 준 지금 나오는 알림
 let outputConf = { width: 1920, height: 1080, fps: 30 }
@@ -140,7 +141,15 @@ function applyOutputSize() {
   output.setContentSize(Math.round(outputConf.width / sf), Math.round(outputConf.height / sf))
 }
 
+// 해상도(비율)가 바뀌었을 때: 사용자가 줄여 둔 가로 크기는 그대로 두고, 세로만 새 비율에 맞춘다
+function keepWidthFitRatio() {
+  if (!output || output.isDestroyed()) return
+  const w = Math.max(320, output.getContentBounds().width)
+  output.setContentSize(w, Math.round((w * outputConf.height) / outputConf.width))
+}
+
 function openOutput(conf) {
+  const resChanged = conf.width !== outputConf.width || conf.height !== outputConf.height
   outputConf = { ...outputConf, ...conf }
   if (output && !output.isDestroyed()) {
     if (hiddenBounds) {
@@ -150,7 +159,7 @@ function openOutput(conf) {
     if (output.isMinimized()) output.restore()
     output.show()
     output.focus()
-    applyOutputSize()
+    if (resChanged) keepWidthFitRatio() // 이미 열려 있으면 크기는 건드리지 않는다(줄여 둔 크기를 지킨다)
     return
   }
   const sf = screen.getPrimaryDisplay().scaleFactor || 1
@@ -208,6 +217,17 @@ function openOutput(conf) {
   broadcast('output:opened')
 }
 
+// ── 장면 전역 단축키: 다른 프로그램을 쓰는 중에도 Ctrl+Alt+1~9 로 방송 장면을 바꾼다(설정에서 켠 경우에만)
+function applySceneHotkeys(on) {
+  for (let n = 1; n <= 9; n++) {
+    const key = `CommandOrControl+Alt+${n}`
+    try {
+      globalShortcut.unregister(key)
+      if (on) globalShortcut.register(key, () => send(editor, 'scene:hotkey', n))
+    } catch {}
+  }
+}
+
 // ── 후원 리모컨 창
 function openRemote() {
   if (remote && !remote.isDestroyed()) {
@@ -223,7 +243,7 @@ function openRemote() {
     minWidth: 340,
     minHeight: 420,
     backgroundColor: '#121416',
-    title: '후원 리모컨',
+    title: '방송 리모컨',
     icon: ICON,
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
@@ -363,6 +383,7 @@ function registerIpc() {
   h('settings:get', () => store.getSettings())
   h('settings:set', (patch) => {
     const s = store.setSettings(store.cleanSettingsPatch(patch))
+    if (patch && 'sceneHotkeys' in patch) applySceneHotkeys(s.sceneHotkeys)
     broadcast('chzzk:status', chzzk.getStatus())
     return s
   })
@@ -445,11 +466,13 @@ function registerIpc() {
   h('output:close', () => output?.close())
   h('output:isOpen', () => !!(output && !output.isDestroyed()))
   h('output:config', (conf) => {
+    const before = outputConf
     outputConf = { ...outputConf, ...cleanConf(conf) }
     try {
       output?.webContents.setFrameRate(outputConf.fps)
     } catch {}
-    applyOutputSize()
+    // 전환 효과·프레임 수 같은 옵션을 바꿀 때 창 크기를 원래대로 되돌리지 않는다. 해상도가 바뀐 때만 비율을 맞춘다.
+    if (before.width !== outputConf.width || before.height !== outputConf.height) keepWidthFitRatio()
   })
   ipcMain.on('output:state', (e, state) => {
     if (!trusted(e)) return
@@ -466,6 +489,16 @@ function registerIpc() {
   h('output:getChat', () => outputChat)
 
   // 후원 리모컨: 편집기가 후원 기록을 보내고, 출력 창이 지금 알림을 알리고, 리모컨이 다시 띄우기를 시킨다
+  // 방송 장면 바꾸기: 리모컨 버튼과 전역 단축키(Ctrl+Alt+1~9)
+  ipcMain.on('remote:scenes', (e, v) => {
+    if (!from(editor, e) || !v || !Array.isArray(v.scenes)) return
+    remoteScenes = { scenes: v.scenes.slice(0, 20).map((s) => ({ id: String(s.id).slice(0, 100), name: String(s.name ?? '').slice(0, 40) })), liveId: typeof v.liveId === 'string' ? v.liveId.slice(0, 100) : null }
+    send(remote, 'remote:scenes', remoteScenes)
+  })
+  ipcMain.on('remote:scene', (e, id) => {
+    if (!from(remote, e) || typeof id !== 'string' || !remoteScenes.scenes.some((s) => s.id === id)) return
+    send(editor, 'scene:setLive', id)
+  })
   h('remote:open', () => openRemote())
   h('remote:close', () => remote?.close())
   h('remote:isOpen', () => !!(remote && !remote.isDestroyed()))
@@ -482,7 +515,7 @@ function registerIpc() {
   })
   ipcMain.handle('remote:get', (e) => {
     if (!from(remote, e)) throw new Error('허용되지 않은 요청입니다.')
-    return { list: remoteList, now: alertNow, outputOpen: !!(output && !output.isDestroyed()) }
+    return { list: remoteList, now: alertNow, outputOpen: !!(output && !output.isDestroyed()), scenes: remoteScenes }
   })
   ipcMain.on('remote:show', (e, id) => {
     if (!from(remote, e) || typeof id !== 'string') return
@@ -632,10 +665,12 @@ app.whenReady().then(() => {
   updater.init((ch, data) => send(editor, ch, data), { beforeInstall: () => { forceClose = true } })
   registerIpc()
   createEditor()
+  applySceneHotkeys(store.getSettings().sceneHotkeys)
   setTimeout(() => chzzk.autoConnectIfNeeded(), 1500)
   setTimeout(() => youtube.autoConnectIfNeeded(), 2500)
   setTimeout(() => ytweb.autoConnectIfNeeded(), 3000)
   setTimeout(() => soop.autoConnectIfNeeded(), 3500)
 })
 
+app.on('will-quit', () => globalShortcut.unregisterAll())
 app.on('window-all-closed', () => app.quit())

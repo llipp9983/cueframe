@@ -31,6 +31,8 @@ export const useStore = create((set, get) => ({
   missing: {}, // layerId -> true
   chatBuffer: [],
   donations: [], // 후원 기록(후원 리모컨에 보여 줌)
+  broadcastLock: false, // 방송 중 잠금: 장면 바꾸기 말고는 편집을 막는다
+  autosavedAt: 0, // 마지막 자동 저장 시각
   update: { state: 'none' },
   outputOpen: false,
   updateHidden: false,

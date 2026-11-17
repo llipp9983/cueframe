@@ -83,6 +83,7 @@ export default function SceneBar() {
   const deleteScene = useStore((s) => s.deleteScene)
   const setLiveFollow = useStore((s) => s.setLiveFollow)
   const moveScene = useStore((s) => s.moveScene)
+  const locked = useStore((s) => s.broadcastLock)
   const effectiveLive = liveFollow ? activeId : liveId
   const active = scenes.find((s) => s.id === activeId)
 
@@ -91,15 +92,15 @@ export default function SceneBar() {
       {scenes.map((sc) => (
         <Tab key={sc.id} scene={sc} active={sc.id === activeId} live={sc.id === effectiveLive} onSelect={switchScene} />
       ))}
-      <button className="icon" title={`장면 추가 (최대 ${MAX_SCENES}개)`} aria-label="장면 추가" disabled={scenes.length >= MAX_SCENES} onClick={() => addScene()}><Icon name="plus" /></button>
-      <button className="icon" title="지금 장면 복제" aria-label="장면 복제" disabled={scenes.length >= MAX_SCENES} onClick={() => addScene({ copy: true })}><Icon name="duplicate" /></button>
-      <button className="icon" title="지금 장면을 앞으로 옮기기" aria-label="장면 앞으로" disabled={scenes[0]?.id === activeId} onClick={() => moveScene(activeId, -1)}><span aria-hidden="true">‹</span></button>
-      <button className="icon" title="지금 장면을 뒤로 옮기기" aria-label="장면 뒤로" disabled={scenes[scenes.length - 1]?.id === activeId} onClick={() => moveScene(activeId, 1)}><span aria-hidden="true">›</span></button>
+      <button className="icon" title={`장면 추가 (최대 ${MAX_SCENES}개)`} aria-label="장면 추가" disabled={locked || scenes.length >= MAX_SCENES} onClick={() => addScene()}><Icon name="plus" /></button>
+      <button className="icon" title="지금 장면 복제" aria-label="장면 복제" disabled={locked || scenes.length >= MAX_SCENES} onClick={() => addScene({ copy: true })}><Icon name="duplicate" /></button>
+      <button className="icon" title="지금 장면을 앞으로 옮기기" aria-label="장면 앞으로" disabled={locked || scenes[0]?.id === activeId} onClick={() => moveScene(activeId, -1)}><span aria-hidden="true">‹</span></button>
+      <button className="icon" title="지금 장면을 뒤로 옮기기" aria-label="장면 뒤로" disabled={locked || scenes[scenes.length - 1]?.id === activeId} onClick={() => moveScene(activeId, 1)}><span aria-hidden="true">›</span></button>
       <button
         className="icon"
         title="지금 장면 삭제"
         aria-label="장면 삭제"
-        disabled={scenes.length <= 1}
+        disabled={locked || scenes.length <= 1}
         onClick={async () => {
           if (await askYesNo(`'${active?.name}' 장면을 삭제할까요?\n이 장면의 레이어가 모두 사라지며 되돌릴 수 없습니다.`, { warn: true })) deleteScene(activeId)
         }}

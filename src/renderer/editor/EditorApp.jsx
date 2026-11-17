@@ -14,7 +14,7 @@ import { mediaUrl, loadImageInfo, loadVideoInfo } from '../scene/media.js'
 import { isVideoPath } from '../../core/layer.js'
 import * as actions from './actions.js'
 import SceneBar from './SceneBar.jsx'
-import { showStartGuide, showConnect } from '../dialogs/dialogStore.js'
+import { showConnect, showStart } from '../dialogs/dialogStore.js'
 import { newProject, openProject, saveProject, confirmDiscard, offerRecovery, writeAutosaveIfDirty, clearAutosave, startRename, deleteSelected, nudgeSelected, duplicateSelected, flipSelected, alignSelected, selectAll, setOpacitySelected, refreshRecent, loadUserPresets } from './actions.js'
 
 if (import.meta.env.DEV) window.__actions = actions // 개발 중 점검용
@@ -30,6 +30,7 @@ export default function EditorApp() {
   const projectName = useStore((s) => s.projectName)
   const dirty = useStore((s) => s.dirty)
   const saving = useStore((s) => s.saving)
+  const locked = useStore((s) => s.broadcastLock)
 
   // 창 제목
   useEffect(() => {
@@ -65,13 +66,10 @@ export default function EditorApp() {
           s.set({ notice: [...(res.warnings ?? []), res.recovered ? '프로젝트 파일이 손상되어 백업(.bak)에서 복구했습니다.' : ''].filter(Boolean).join(' ') })
         }
       }
-      // 프로그램을 켤 때마다 채팅 연결(로그인) 창을 먼저 보여 준다. 채팅 없이 쓰려면 [로그인하지 않음]
-      await showConnect({ startup: true })
-      // 처음 쓰는 분에게만 한 번 시작하기 안내를 보여 준다(이미 쓰던 프로젝트가 있으면 보여 주지 않는다)
-      if (!st.lastProject && !localStorage.getItem('cueframe.seenStart')) {
-        localStorage.setItem('cueframe.seenStart', '1')
-        showStartGuide()
-      }
+      // 열어 둔 프로젝트가 없으면(처음 쓰거나 새로 시작) 시작 화면에서 템플릿을 고르게 한다. 이때는 채팅 연결 창으로 막지 않는다.
+      // 이어서 작업하는 경우에만 예전처럼 채팅 연결(로그인) 창을 먼저 보여 준다. 채팅 없이 쓰려면 [로그인하지 않음]
+      if (recovered || st.lastProject) await showConnect({ startup: true })
+      else await showStart()
     })()
     const offs = [
       api.onOutputOpened(() => useStore.getState().set({ outputOpen: true })),
@@ -151,11 +149,26 @@ export default function EditorApp() {
       chatRaf = 0
       api.sendOutputChat(useStore.getState().chatBuffer.slice(-50)) // 화면에 쓰는 건 최대 50개
     }
+    let scenesRaf = 0
+    const pushScenes = () => {
+      scenesRaf = 0
+      const s = useStore.getState()
+      api.sendRemoteScenes({ scenes: s.scenes.map((x) => ({ id: x.id, name: x.name })), liveId: live(s).id })
+    }
     const pushRemote = () => {
       remoteRaf = 0
       api.sendRemoteList(useStore.getState().donations)
+      pushScenes()
     }
     const offClear = api.onRemoteClearList(() => useStore.getState().clearDonations())
+    // 리모컨 버튼과 전역 단축키(Ctrl+Alt+1~9)로 방송 장면 바꾸기
+    const goLive = (sc) => {
+      if (!sc) return
+      useStore.getState().setLiveScene(sc.id)
+      useStore.getState().set({ notice: `방송 장면: ${sc.name}` })
+    }
+    const offSetLive = api.onSceneSetLive((id) => goLive(useStore.getState().scenes.find((x) => x.id === id)))
+    const offHotkey = api.onSceneHotkey((n) => goLive(useStore.getState().scenes[n - 1]))
     const offOpen = api.onRemoteOpened(() => pushRemote())
     const unsub = useStore.subscribe((s, p) => {
       const a = live(s)
@@ -165,6 +178,7 @@ export default function EditorApp() {
       }
       if (s.chatBuffer !== p.chatBuffer && !chatRaf) chatRaf = requestAnimationFrame(pushChat)
       if (s.donations !== p.donations && !remoteRaf) remoteRaf = requestAnimationFrame(pushRemote)
+      if ((s.scenes !== p.scenes || a.id !== b.id) && !scenesRaf) scenesRaf = requestAnimationFrame(pushScenes)
     })
     push()
     pushChat()
@@ -172,6 +186,9 @@ export default function EditorApp() {
     return () => {
       unsub()
       offClear()
+      offSetLive()
+      offHotkey()
+      cancelAnimationFrame(scenesRaf)
       offOpen()
       cancelAnimationFrame(remoteRaf)
       cancelAnimationFrame(raf)
@@ -205,6 +222,22 @@ export default function EditorApp() {
       const k = e.key.toLowerCase()
       const typing = isTyping(document.activeElement)
       const s = useStore.getState()
+      // 방송 중 잠금(Ctrl+L)과 방송 장면 바꾸기(Alt+1~9)는 잠겨 있어도 쓸 수 있다
+      if (ctrl && k === 'l') {
+        e.preventDefault()
+        s.set({ broadcastLock: !s.broadcastLock, notice: s.broadcastLock ? '방송 중 잠금을 풀었습니다' : '방송 중 잠금: 장면 바꾸기 말고는 편집이 막힙니다' })
+        return
+      }
+      if (e.altKey && !ctrl && !e.shiftKey && /^[1-9]$/.test(e.key)) {
+        const sc = s.scenes[Number(e.key) - 1]
+        if (sc) {
+          e.preventDefault()
+          s.setLiveScene(sc.id)
+          s.set({ notice: `방송 장면: ${sc.name}` })
+        }
+        return
+      }
+      if (s.broadcastLock) return
       if (ctrl && k === 'z' && !e.shiftKey) {
         if (typing) return
         e.preventDefault()
@@ -265,16 +298,23 @@ export default function EditorApp() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', pointerEvents: saving ? 'auto' : undefined }}>
       <MenuBar />
       <UpdateBanner />
+      {locked && (
+        <div className="row" role="status" style={{ background: 'var(--warn)', color: '#1a1405', padding: '4px 12px', gap: 12, fontWeight: 600 }}>
+          <span>🔒 방송 중 잠금 — 장면 바꾸기(Alt+1~9, 장면 탭의 ●)만 됩니다. 실수로 화면이 바뀌지 않습니다.</span>
+          <span style={{ flex: 1 }} />
+          <button style={{ minHeight: 24 }} onClick={() => useStore.getState().set({ broadcastLock: false, notice: '방송 중 잠금을 풀었습니다' })}>잠금 풀기 (Ctrl+L)</button>
+        </div>
+      )}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 10, padding: 10 }}>
-        <LayerList />
+        <div className={locked ? 'lockable' : undefined} style={{ display: 'flex', minHeight: 0 }}><LayerList /></div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="row" style={{ flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center' }}>
             <SceneBar />
-            <AlignBar />
+            <div className={locked ? 'lockable' : undefined}><AlignBar /></div>
           </div>
-          <Preview />
+          <div className={locked ? 'lockable-soft' : undefined} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}><Preview /></div>
         </div>
-        <PropsPanel />
+        <div className={locked ? 'lockable' : undefined} style={{ display: 'flex', minHeight: 0 }}><PropsPanel /></div>
       </div>
       <div style={{ padding: '0 10px 10px' }}>
         <BottomBars />

@@ -152,6 +152,14 @@ body {
   inherits: false;
   initial-value: 0%;
 }
+.lockable {
+  pointer-events: none;
+  opacity: 0.45;
+  filter: grayscale(0.5);
+}
+.lockable-soft {
+  pointer-events: none;
+}
 @keyframes cf-sway {
   0%,
   100% {

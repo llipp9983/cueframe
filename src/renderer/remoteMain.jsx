@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import './theme/tokens.css'
+import './theme/controls.css'
 import RemoteApp from './remote/RemoteApp.jsx'
 import { api } from './api.js'
 

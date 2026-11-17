@@ -296,7 +296,9 @@ export async function writeAutosaveIfDirty() {
   const s = st()
   if (!s.dirty || s.saving) return
   if (clearing) await clearing
-  await api.autosave.write({ savedAt: Date.now(), projectDir: s.projectDir, text: serializeProject(s.getProject()) })
+  const savedAt = Date.now()
+  await api.autosave.write({ savedAt, projectDir: s.projectDir, text: serializeProject(s.getProject()) })
+  st().set({ autosavedAt: savedAt })
 }
 
 /** 시작할 때: 남아 있는 자동 저장본이 있으면 복구할지 묻는다. 복구했으면 true. */

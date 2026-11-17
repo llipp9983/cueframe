@@ -7,6 +7,26 @@ import { testAlerts } from './actions.js'
 import { api } from '../api.js'
 import { ALERT_ANIMS, ALERT_ANIM_LABEL, ALERT_LAYOUTS, ALERT_LAYOUT_LABEL, DONATION_KINDS, DONATION_LABEL, SOUND_KINDS, SOUND_LABEL, SAMPLE_DONATIONS, defaultAlert, normalizeAlert } from '../../core/donation.js'
 import { playAlert, stopAlert, voices } from '../scene/alertSound.js'
+import { AlertCard } from '../scene/AlertLayer.jsx'
+
+const PREVIEW_ITEM = { id: 'pv', nick: '후원자님', text: '[후원 5,000원] 방송 화이팅!', platform: 'chzzk', time: 0, donation: { kind: 'cash', amount: '5,000원', text: '방송 화이팅!', title: '' } }
+
+/** 알림 모양을 바꾸면 바로 보이는 작은 미리보기. [다시 보기]로 나타나는 움직임을 다시 재생한다. */
+function LookPreview({ s, layer }) {
+  const [n, setN] = useState(0)
+  const W = 260
+  const k = W / layer.width
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ position: 'relative', width: W, height: Math.round(layer.height * k), overflow: 'hidden', borderRadius: 6, background: 'linear-gradient(135deg, #20242c, #12151a)' }}>
+        <div style={{ position: 'absolute', left: 0, top: 0, width: layer.width, height: layer.height, transform: `scale(${k})`, transformOrigin: '0 0', pointerEvents: 'none' }}>
+          <AlertCard key={`${n}-${s.anim}-${s.layout}`} item={PREVIEW_ITEM} style={s} width={layer.width} height={layer.height} />
+        </div>
+      </div>
+      <button style={{ marginTop: 4 }} onClick={() => setN(n + 1)} title="나타나는 움직임을 처음부터 다시 보여 줍니다">움직임 다시 보기</button>
+    </div>
+  )
+}
 
 const baseName = (p) => String(p ?? '').split(/[\\/]/).pop()
 
@@ -134,7 +154,7 @@ export default function AlertPanel({ layer }) {
         )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button className="accent" style={{ minHeight: 34 }} onClick={() => testAlerts()} title="가짜 후원 5개를 보냅니다. 방송 출력 창을 열어 두면 거기서 확인됩니다">알림 시험</button>
-          <button style={{ minHeight: 34 }} onClick={() => api.remote.open()} title="후원 기록을 보고 다시 띄우는 창">후원 리모컨 열기</button>
+          <button style={{ minHeight: 34 }} onClick={() => api.remote.open()} title="방송 장면 바꾸기와 후원 기록·다시 띄우기를 한 창에서">방송 리모컨 열기</button>
         </div>
         <div className="muted" style={{ marginTop: 6, whiteSpace: 'normal', lineHeight: 1.5 }}>
           알림은 방송 출력 창에서만 움직입니다.
@@ -152,6 +172,7 @@ export default function AlertPanel({ layer }) {
       </Collapse>
 
       <Collapse id="alert-look" title="알림 모양·시간">
+        <LookPreview s={s} layer={layer} />
         <SelectRow label="배치" value={s.layout} options={ALERT_LAYOUTS.map((m) => [m, ALERT_LAYOUT_LABEL[m]])} onChange={field('layout')} />
         <SelectRow label="나타나는 방식" value={s.anim} options={ALERT_ANIMS.map((m) => [m, ALERT_ANIM_LABEL[m]])} onChange={field('anim')} />
         <SliderRow label="보여 주는 시간" value={s.seconds} min={2} max={30} onChange={field('seconds')} fmt={(v) => `${Math.round(v)}초`} />

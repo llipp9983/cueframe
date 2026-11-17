@@ -80,6 +80,21 @@ export default function ChatPanel({ layer }) {
         </div>
       </Collapse>
 
+      {/* 처음 쓰는 사람은 여기만 만져도 된다. 나머지는 아래 [자세한 설정] */}
+      <Collapse id="chat-easy" title="쉬운 설정">
+        {sl('글자 크기', 'fontSize', 10, 80)}
+        {co('글자색', 'textColor')}
+        {co('닉네임 색', 'nickColor')}
+        {co('배경색 (위)', 'bgColor')}
+        {co('배경색 (아래)', 'bgColor2')}
+        {sl('배경 투명도', 'bgOpacity', 0, 1, 0.01)}
+        {ck('말풍선', 'bubble')}
+        <SelectRow label="쌓는 방향" value={s.direction} options={[['bottom-up', '아래에서 위로'], ['top-down', '위에서 아래로']]} onChange={set('direction')} />
+        {sl('최대 표시 개수', 'maxMessages', 1, 50, 1)}
+        {ck('닉네임 앞 방송 아이콘', 'platformIcon')}
+      </Collapse>
+
+      <Collapse id="chat-adv" title="자세한 설정 (창 틀·영역·메시지·닉네임·장식)" defaultOpen={false}>
       <Collapse id="chat-frame" title="창 틀" defaultOpen={false}>
       <TextRow label="제목" value={s.title} max={40} onChange={set('title')} />
       {sl('제목 크기', 'titleSize', 10, 80)}
@@ -200,6 +215,7 @@ export default function ChatPanel({ layer }) {
           추가 ({s.shapes.length}/{MAX_SHAPE_ORNAMENTS})
         </button>
       </div>
+      </Collapse>
       </Collapse>
     </div>
   )

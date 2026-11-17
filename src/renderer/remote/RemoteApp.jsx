@@ -26,19 +26,21 @@ export default function RemoteApp() {
   const [list, setList] = useState([])
   const [now, setNow] = useState(null)
   const [outputOpen, setOutputOpen] = useState(false)
+  const [sceneInfo, setSceneInfo] = useState({ scenes: [], liveId: null })
   const [filter, setFilter] = useState('all')
   const [pin, setPin] = useState(false)
   const [tick, setTick] = useState(0)
   const [flash, setFlash] = useState('')
 
   useEffect(() => {
-    document.title = '후원 리모컨'
+    document.title = '방송 리모컨'
     api.remote.get().then((r) => {
       setList(r.list ?? [])
       setNow(r.now ?? null)
       setOutputOpen(!!r.outputOpen)
+      if (r.scenes) setSceneInfo(r.scenes)
     })
-    const offs = [api.onRemoteList(setList), api.onAlertNow(setNow)]
+    const offs = [api.onRemoteList(setList), api.onAlertNow(setNow), api.onRemoteScenes(setSceneInfo)]
     const t = setInterval(() => setTick((n) => n + 1), 250)
     return () => {
       offs.forEach((f) => f())
@@ -59,6 +61,25 @@ export default function RemoteApp() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg1)', color: 'var(--text)', fontSize: 13 }}>
+      {/* 방송 장면: 눌러서 바로 바꾼다. 가장 자주 쓰는 것이라 맨 위, 큰 버튼 */}
+      {sceneInfo.scenes.length > 1 && (
+        <div style={{ padding: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+            <strong>방송 장면</strong>
+            <span className="muted">눌러서 바로 방송에 내보내기</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {sceneInfo.scenes.map((sc, i) => {
+              const live = sc.id === sceneInfo.liveId
+              return (
+                <button key={sc.id} className={live ? 'accent' : ''} style={{ flex: '1 1 110px', minHeight: 42, fontWeight: 700 }} onClick={() => api.remoteScene(sc.id)} title={live ? '지금 방송 중인 장면' : `이 장면을 방송에 내보내기 (Alt+${i + 1})`}>
+                  {live ? '● ' : ''}{i + 1}. {sc.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
       <div style={{ padding: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <strong style={{ flex: 1 }}>지금 나오는 알림</strong>
@@ -94,7 +115,7 @@ export default function RemoteApp() {
         )}
         {/* 자주 쓰는 "넘기기"는 크게, 되돌릴 수 없는 "대기 비우기"는 멀리 떨어뜨려 잘못 누르지 않게 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          <button className="accent" style={{ flex: 1, minHeight: 36, fontWeight: 700 }} disabled={!current} onClick={() => api.remoteSkip()} title="지금 나오는 알림을 바로 끝내고 다음으로">지금 알림 넘기기</button>
+          <button className="accent" style={{ flex: 1, minHeight: 36, fontWeight: 700, opacity: current ? 1 : 0.45 }} disabled={!current} onClick={() => api.remoteSkip()} title="지금 나오는 알림을 바로 끝내고 다음으로">지금 알림 넘기기</button>
           <span className="muted" style={{ whiteSpace: 'nowrap' }}>대기 {now?.queue ?? 0}개</span>
           <button className="ghost" style={{ minHeight: 36, marginLeft: 16 }} disabled={!now?.queue} onClick={() => api.remoteClearQueue()} title="기다리는 알림을 모두 지웁니다">대기 비우기</button>
         </div>

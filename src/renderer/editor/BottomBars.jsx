@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
 import Icon from '../theme/Icon.jsx'
 import Pop, { PopItem } from './Pop.jsx'
-import { addBackground, addTable, addProps, addChat, addText, addWidget, addAlert, addParticles } from './actions.js'
+import { addBackground, addTable, addProps, addChat, addText, addWidget, addAlert, addParticles, saveProject } from './actions.js'
 import { showConnect } from '../dialogs/dialogStore.js'
+import TransitionPreview from './TransitionPreview.jsx'
 import { RESOLUTIONS } from '../../core/project.js'
 import { TRANSITIONS, MAX_TRANSITION_IMAGES } from '../../core/transitions.js'
 import { fileNameOf } from '../../core/layer.js'
@@ -58,6 +60,24 @@ export default function BottomBars() {
   const canRedo = useStore((s) => s.future.length > 0)
   const sampleChat = useStore((s) => s.sampleChat)
   const diag = useStore((s) => s.diag)
+  const locked = useStore((s) => s.broadcastLock)
+  const dirty = useStore((s) => s.dirty)
+  const autosavedAt = useStore((s) => s.autosavedAt)
+  const projectDir = useStore((s) => s.projectDir)
+  const [hotkeys, setHotkeys] = useState(false)
+  useEffect(() => {
+    api.getSettings().then((st) => setHotkeys(st?.sceneHotkeys === true))
+  }, [])
+  // 읽지 못한 파일이 있는 요소로 이동한다(누를 때마다 다음 요소)
+  const gotoMissing = () => {
+    const st = useStore.getState()
+    const ids = st.layers.filter((l) => st.missing[l.id]).map((l) => l.id)
+    if (!ids.length) return
+    const next = ids[(ids.indexOf(st.selectedIds[0]) + 1) % ids.length]
+    st.select([next])
+    st.set({ notice: '선택한 요소의 [파일 다시 연결...] 버튼으로 파일을 다시 지정하세요' })
+  }
+  const hhmm = (t) => new Date(t).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
   const { undo, redo, setOutput, clearChat, set } = useStore.getState()
   const resValue = `${output.width}x${output.height}`
 
@@ -111,16 +131,27 @@ export default function BottomBars() {
       )}
 
       {missingCount > 0 && (
-        <span style={{ ...chip(true), borderColor: 'var(--warn)', color: 'var(--warn)' }} title="읽지 못한 파일이 있는 레이어는 목록에서 ⚠로 표시됩니다">⚠ 파일 {missingCount}개 없음</span>
+        <button className="ghost" style={{ ...chip(true), borderColor: 'var(--warn)', color: 'var(--warn)', cursor: 'pointer' }} title="누르면 읽지 못한 파일이 있는 요소로 이동합니다(여러 개면 다음 요소로)" onClick={gotoMissing}>⚠ 파일 {missingCount}개 없음 — 눌러서 찾기</button>
       )}
 
+      <button className="ghost" style={{ ...chip(!dirty), cursor: 'pointer', borderColor: dirty ? 'var(--warn)' : 'var(--border)' }} title={dirty ? (autosavedAt ? `저장하지 않은 변경이 있습니다. ${hhmm(autosavedAt)}에 복구용으로 자동 저장했습니다. 누르면 저장합니다 (Ctrl+S)` : '저장하지 않은 변경이 있습니다. 누르면 저장합니다 (Ctrl+S)') : '모든 변경이 저장되어 있습니다'} onClick={() => dirty && saveProject(false)}>
+        <Dot color={dirty ? 'var(--warn)' : 'var(--ok)'} />{dirty ? '저장 안 됨' + (autosavedAt ? ` · 자동 저장 ${hhmm(autosavedAt)}` : '') : projectDir ? '저장됨' : '새 프로젝트'}
+      </button>
       <button className="ghost" style={{ ...chip(list.some((p) => isLive(p.s)) || sampleChat), cursor: 'pointer' }} title={`${sampleChat ? '샘플 채팅이 나오는 중입니다' : `치지직: ${chzzk.text} / YouTube: ${ytweb.state !== 'disconnected' ? ytweb.text : youtube.text} / SOOP: ${soop.text}`} — 눌러서 채팅 연결 설정`} onClick={showConnect}>
         <Dot color={dot} />{label}
       </button>
-      <Pop label="도구 ▾" ariaLabel="도구" title="후원 리모컨, 샘플 채팅, 채팅 비우기" minWidth={210} right>
+      <Pop label="도구 ▾" ariaLabel="도구" title="방송 리모컨, 방송 중 잠금, 장면 단축키, 샘플 채팅" minWidth={210} right>
         {(close) => (
           <>
-            <PopItem close={close} label="후원 리모컨 열기" hint="기록·다시 띄우기" onClick={() => api.remote.open()} />
+            <PopItem close={close} label="방송 리모컨 열기" hint="장면·후원" onClick={() => api.remote.open()} />
+            <label className="menu-item" style={{ cursor: 'pointer' }} title="켜면 편집(옮기기·삭제 등)이 막히고 장면 바꾸기만 됩니다">
+              <span>방송 중 잠금 <span className="kbd">Ctrl+L</span></span>
+              <input type="checkbox" checked={locked} onChange={(e) => set({ broadcastLock: e.target.checked })} />
+            </label>
+            <label className="menu-item" style={{ cursor: 'pointer' }} title="켜면 게임·OBS 등 다른 프로그램을 쓰는 중에도 Ctrl+Alt+1~9로 방송 장면을 바꿀 수 있습니다. 다른 프로그램의 단축키와 겹치면 끄세요">
+              <span>장면 단축키 <span className="kbd">Ctrl+Alt+1~9</span></span>
+              <input type="checkbox" checked={hotkeys} onChange={(e) => { setHotkeys(e.target.checked); api.setSettings({ sceneHotkeys: e.target.checked }) }} />
+            </label>
             <div className="menu-sep" />
             <label className="menu-item" style={{ cursor: 'pointer' }}>
               <span>샘플 채팅 보기</span>
@@ -131,8 +162,8 @@ export default function BottomBars() {
         )}
       </Pop>
 
-      <Pop label="⚙ 출력 설정" title="해상도, 프레임, 장면 전환, 진단 표시" right minWidth={260}>
-        <div style={{ padding: 10, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8, alignItems: 'center' }}>
+      <Pop label="⚙ 출력 설정" title="해상도, 프레임, 장면 전환, 진단 표시" right minWidth={340}>
+        <div style={{ padding: 10, display: 'grid', gridTemplateColumns: 'max-content minmax(0, 1fr)', gap: 8, alignItems: 'center' }}>
           <label htmlFor="o-res">해상도</label>
           <select id="o-res" value={resValue} onChange={(e) => { const r = RESOLUTIONS.find((x) => x.label === e.target.value); changeOutput({ width: r.width, height: r.height }) }}>
             {RESOLUTIONS.map((r) => <option key={r.label} value={r.label}>{r.label}</option>)}
@@ -146,6 +177,8 @@ export default function BottomBars() {
           <select id="o-tr" value={output.transition ?? 'fade'} onChange={(e) => changeOutput({ transition: e.target.value })}>
             {TRANSITIONS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
+          <span />
+          <TransitionPreview id={output.transition ?? 'fade'} images={output.transitionImages ?? []} projectDir={projectDir} width={216} />
           {output.transition === 'photo' && (
             <>
               <span />
