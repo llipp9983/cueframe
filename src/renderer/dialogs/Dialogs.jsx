@@ -3,6 +3,8 @@ import { useDialogs } from './dialogStore.js'
 import { Shell } from './Shell.jsx'
 import ConnectDialog from './ConnectDialog.jsx'
 import TemplatesDialog from './TemplatesDialog.jsx'
+import TemplatePreviewDialog from './TemplatePreviewDialog.jsx'
+import ChatPresetDialog from './ChatPresetDialog.jsx'
 import { CHZZK_GUIDE_STEPS, START_GUIDE_STEPS } from './texts.js'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
@@ -104,6 +106,8 @@ export default function Dialogs() {
       case 'guide': return <GuideDialog key={d.id} d={d} />
       case 'connect': return <ConnectDialog key={d.id} d={d} />
       case 'templates': return <TemplatesDialog key={d.id} d={d} />
+      case 'templatePreview': return <TemplatePreviewDialog key={d.id} d={d} />
+      case 'chatPresets': return <ChatPresetDialog key={d.id} d={d} />
       default: return null
     }
   })

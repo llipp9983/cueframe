@@ -40,3 +40,7 @@ export const showConnect = (props = {}) => open('connect', props)
 export const showGuide = () => open('guide', { kind: 'chzzk' })
 export const showStartGuide = () => open('guide', { kind: 'start' })
 export const showTemplates = () => open('templates', {})
+/** 템플릿 하나를 크게 미리 보고 고른다. 결과: 'start' | 'chat' | 'transition' | 'motion' | null */
+export const showTemplatePreview = (props) => open('templatePreview', props)
+/** 채팅창 프리셋을 예시로 보고 고른다. 결과: 'b:3' | 'u:이름' | null */
+export const showChatPresets = (props) => open('chatPresets', props)

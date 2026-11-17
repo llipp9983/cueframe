@@ -9,7 +9,7 @@ import { Row, SliderRow, ColorRow, CheckRow, SelectRow, TextRow, Num } from './f
 import { saveUserPreset, deleteUserPreset, exportPresets, importPresets } from './actions.js'
 import { mediaUrl, loadImageInfo } from '../scene/media.js'
 import { fileNameOf } from '../../core/layer.js'
-import { askYesNo } from '../dialogs/dialogStore.js'
+import { askYesNo, showChatPresets } from '../dialogs/dialogStore.js'
 
 const Section = ({ children }) => <div className="section-title">{children}</div>
 
@@ -25,11 +25,13 @@ export default function ChatPanel({ layer }) {
   const co = (label, field) => <ColorRow label={label} value={s[field]} onChange={set(field)} />
   const ck = (label, field) => <CheckRow label={label} value={s[field]} onChange={set(field)} />
 
-  const apply = () => {
-    const [t, k] = [sel.slice(0, 1), sel.slice(2)]
-    const style = t === 'b' ? BUILTIN_PRESETS[Number(k)]?.style : userPresets.find((p) => p.name === k)?.style
-    if (!style) return
-    commit(useStore.getState().layers.map((l) => (l.id === layer.id ? { ...l, chat: normalizeChatStyle(style) } : l)))
+  // 프리셋을 예시로 보고 고른다(새 창). 고르면 바로 적용한다.
+  const choose = async () => {
+    const r = await showChatPresets({ width: layer.width, height: layer.height, initial: sel })
+    if (!r) return
+    setSel(r)
+    const style = r.startsWith('b:') ? BUILTIN_PRESETS[Number(r.slice(2))]?.style : useStore.getState().userPresets.find((p) => p.name === r.slice(2))?.style
+    if (style) commit(useStore.getState().layers.map((l) => (l.id === layer.id ? { ...l, chat: normalizeChatStyle(style) } : l)))
   }
   const isUser = sel.startsWith('u:')
   const reset = async () => {
@@ -60,21 +62,9 @@ export default function ChatPanel({ layer }) {
   return (
     <div>
       <Section>채팅창 설정</Section>
-      <div className="muted" style={{ marginBottom: 4 }}>프리셋 (★ = 내가 저장한 것)</div>
-      <div className="row" style={{ gap: 6 }}>
-        <select aria-label="프리셋" value={sel} onChange={(e) => setSel(e.target.value)} style={{ flex: 1, minWidth: 0 }}>
-          {PRESET_GROUPS.map((g) => (
-            <optgroup key={g} label={g}>
-              {BUILTIN_PRESETS.map((p, i) => (p.group === g ? <option key={i} value={`b:${i}`}>{p.name}</option> : null))}
-            </optgroup>
-          ))}
-          {userPresets.length > 0 && (
-            <optgroup label="내 프리셋">
-              {userPresets.map((p) => <option key={p.name} value={`u:${p.name}`}>★ {p.name}</option>)}
-            </optgroup>
-          )}
-        </select>
-        <button className="accent" onClick={apply} title="고른 프리셋을 이 채팅창에 적용합니다">적용</button>
+      <button className="accent" style={{ width: '100%', minHeight: 36 }} onClick={choose} title="모든 프리셋을 실제 모양으로 보고 고릅니다">프리셋 고르기… (예시 보기)</button>
+      <div className="muted" style={{ marginTop: 4, marginBottom: 2 }}>
+        마지막으로 고른 프리셋: {sel.startsWith('u:') ? `★ ${sel.slice(2)}` : BUILTIN_PRESETS[Number(sel.slice(2))]?.name ?? ''}
       </div>
       <Collapse id="chat-preset-manage" title="프리셋 저장·관리" defaultOpen={false}>
         <div className="row" style={{ flexWrap: 'wrap' }}>

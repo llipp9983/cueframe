@@ -131,7 +131,8 @@ describe('장면 전환 효과', () => {
     expect(f.nextFrom.transform).toBe('translate(100%, 0%)')
     expect(f.prevTo.transform).toBe('translate(-100%, 0%)')
     expect(transitionFrames('wipe').nextFrom.clipPath).toContain('100%')
-    expect(transitionFrames('fade').prevTo.opacity).toBe(0)
+    expect(transitionFrames('fade').nextFrom.opacity).toBe(0)
+    expect(transitionFrames('fade').prevTo.opacity).toBe(1)
   })
 })
 describe('새 전환 효과와 사진 전환', () => {
@@ -251,5 +252,32 @@ describe('프로젝트 파일 안전: 읽을 때 밖을 가리키는 경로 제�
     const chat = r.scenes[0].layers.find((l) => l.kind === 'Chat').chat
     expect(chat.bgImage).toBe('')
     expect(chat.images.map((i) => i.src)).toEqual(['media/ok.png'])
+  })
+})
+
+describe('전환 효과 1.7.2: 천천히·새 효과', () => {
+  it('새 효과와 느려진 시간', () => {
+    for (const id of ['curtain', 'blinds', 'spin']) {
+      expect(isTransition(id)).toBe(true)
+      expect(normalizeOutput({ transition: id }).transition).toBe(id)
+    }
+    // 눈으로 따라갈 수 있게 컷·사진을 뺀 모든 효과는 1초 이상
+    for (const t of TRANSITIONS.filter((x) => x.id !== 'cut' && x.id !== 'photo')) expect(t.ms).toBeGreaterThanOrEqual(1000)
+    expect(transitionMs('cut')).toBe(0)
+  })
+  it('겹쳐 바뀔 때 화면이 어두워지지 않는다(이전 장면은 끝까지 불투명)', () => {
+    for (const id of ['fade', 'zoom', 'blur', 'spin']) expect(transitionFrames(id).prevTo.opacity).toBe(1)
+    expect(transitionFrames('zoom').nextFrom.opacity).toBe(0)
+  })
+  it('커튼은 가운데에서, 블라인드는 줄무늬 마스크로 열린다', () => {
+    expect(transitionFrames('curtain').nextFrom.clipPath).toBe('inset(0 50% 0 50%)')
+    const b = transitionFrames('blinds')
+    expect(b.nextFrom['--cf-p']).toBe('0%')
+    expect(b.nextTo['--cf-p']).toBe('12.5%')
+    expect(b.nextFrom.maskImage).toContain('repeating-linear-gradient')
+  })
+  it('사진 전환은 사진을 겹쳐 놓는다', async () => {
+    const { PHOTO } = await import('../src/core/transitions.js')
+    expect(PHOTO.spread).toBeGreaterThan(1.5)
   })
 })
