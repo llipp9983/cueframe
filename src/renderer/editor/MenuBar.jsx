@@ -90,7 +90,7 @@ export default function MenuBar() {
         { label: '시작하기 안내', run: showStartGuide },
         { label: 'OBS 설정 안내', run: showObsGuide },
         { label: '단축키 보기', run: showShortcuts },
-        { label: '업데이트 확인', run: async () => { const u = await api.update.check(); if (!u || u.state === 'none') inform('지금 쓰는 버전이 최신이거나, 업데이트를 확인하지 못했습니다.') } },
+        { label: '업데이트 확인', run: async () => { const u = await api.update.check(); if (u?.state === 'portable') inform('포터블 버전은 자동 업데이트가 되지 않습니다. 새 버전은 릴리즈 페이지에서 새 포터블 파일을 받아 바꿔 주세요.'); else if (!u || u.state === 'none') inform('지금 쓰는 버전이 최신이거나, 업데이트를 확인하지 못했습니다.') } },
         { label: '로그 내보내기...', run: () => api.exportLog() },
         { label: '로그 폴더 열기', run: () => api.openLogFolder() },
         { label: '화면 설정 초기화...', run: resetUiPrefs },

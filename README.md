@@ -28,7 +28,7 @@ Electron + React + Vite (JavaScript)
 
 ### 설치 파일로 쓰기
 
-[Releases](https://github.com/llipp9983/cueframe/releases)에서 `CUEFRAME-<버전>-win-x64.exe`를 받아 설치합니다. 설치한 프로그램은 새 버전이 나오면 스스로 알려 줍니다. 구매자에게 줄 설치 안내(Windows 경고 넘기기, 파일 확인 방법)는 [docs/설치안내.md](docs/설치안내.md)에 있습니다.
+[Releases](https://github.com/llipp9983/cueframe/releases)에서 `CUEFRAME-<버전>-win-x64.exe`를 받아 설치합니다. 설치한 프로그램은 새 버전이 나오면 스스로 알려 줍니다. 설치 없이 쓰는 **포터블**(`CUEFRAME-<버전>-portable.exe`, 파일 하나)과 zip도 같은 곳에 있습니다. 포터블·zip은 자동 업데이트가 되지 않습니다. 구매자에게 줄 설치 안내(Windows 경고 넘기기, 파일 확인 방법)는 [docs/설치안내.md](docs/설치안내.md)에 있습니다.
 
 ### 소스에서 실행하기
 

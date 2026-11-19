@@ -18,6 +18,7 @@
 |---|---|
 | `CUEFRAME-버전-win-x64.exe` | **설치 파일 (권장)**. 시작 메뉴·바탕화면에 아이콘이 생기고, 새 버전이 나오면 알려 줍니다. |
 | `CUEFRAME-버전-win-x64.zip` | 설치 없이 압축만 풀어서 쓰는 방식. 설치 파일이 막힐 때 대신 씁니다. 자동 업데이트는 되지 않습니다. |
+| `CUEFRAME-버전-portable.exe` | **포터블 (설치 없이 실행)**. 파일 하나를 받아 더블클릭하면 실행됩니다. 자동 업데이트는 되지 않으니, 새 버전이 나오면 새 파일로 바꿔 주세요. |
 
 > **주의** 다른 사이트나 메신저로 전달받은 파일은 열지 말고, **판매자가 알려 준 주소에서만** 받으세요.
 
@@ -71,7 +72,7 @@
 판매자가 올린 파일이 중간에 바뀌지 않았는지 **SHA-256 해시**로 확인할 수 있습니다. 받은 파일이 있는 폴더에서 PowerShell을 열고 입력합니다. (파일 이름은 받은 파일에 맞게 바꾸세요.)
 
 ```
-Get-FileHash .\CUEFRAME-1.9.1-win-x64.exe -Algorithm SHA256
+Get-FileHash .\CUEFRAME-1.9.2-win-x64.exe -Algorithm SHA256
 ```
 
 ![PowerShell에서 해시 확인 (예시 화면)](img/hash-check.png)
@@ -80,6 +81,9 @@ Get-FileHash .\CUEFRAME-1.9.1-win-x64.exe -Algorithm SHA256
 
 | 버전 | 파일 | SHA-256 |
 |---|---|---|
+| 1.9.2 | `CUEFRAME-1.9.2-win-x64.exe` | `6df1dd89000779fda4fc353808ef4b8597115b6bb2b64af8196cd574c7530359` |
+| 1.9.2 | `CUEFRAME-1.9.2-win-x64.zip` | `3824f845bb7793511c5e149f43b8b517c5f706ddfd6be312d54f5ea1cb1f910c` |
+| 1.9.2 | `CUEFRAME-1.9.2-portable.exe` | `dae1eeffed8696f1b732ff2783983b2323cb7ca5e67b8813100458b8ec67fe62` |
 | 1.9.1 | `CUEFRAME-1.9.1-win-x64.exe` | `6211c224bb3bf0806c463b4792c7410582ff5e7a5b56d20ac9a21d1930812ba5` |
 | 1.9.1 | `CUEFRAME-1.9.1-win-x64.zip` | `c7c085d50467d71cbb8b8ee1e87d6f38a25750e3fc4635a45faf3c7fd945656c` |
 | 1.9.0 | `CUEFRAME-1.9.0-win-x64.exe` | `e514cd24f2c1192991c8a5f03c692b8dba59910680451b4e1ddf71ec216ab4ac` |

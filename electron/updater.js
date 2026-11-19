@@ -24,9 +24,13 @@ const setState = (s) => {
   emit('update:state', state)
 }
 
+/** 단일 포터블 .exe 로 실행 중인가(electron-builder 포터블 실행기가 이 값을 넣어 준다) */
+export const isPortable = () => !!process.env.PORTABLE_EXECUTABLE_FILE
+
 export function init(emitFn, { beforeInstall } = {}) {
   emit = emitFn
   if (!app.isPackaged) return // 개발 중에는 끈다
+  if (isPortable()) return // 포터블 실행 파일은 스스로 바꿔 끼울 수 없어 자동 업데이트를 쓰지 않는다
   try {
     autoUpdater = require('electron-updater').autoUpdater
   } catch (e) {
@@ -64,6 +68,7 @@ let beforeInstallHook = null
 
 /** force=false 면 마지막 확인으로부터 6시간이 지났을 때만 실제로 확인한다. */
 export async function check(force = true) {
+  if (isPortable()) return { state: 'portable' }
   if (!autoUpdater) return state
   if (state.state === 'downloading' || state.state === 'downloaded') return state
   const last = readJson(stateFile(), {}).last ?? 0

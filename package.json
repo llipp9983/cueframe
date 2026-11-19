@@ -1,7 +1,7 @@
 {
   "name": "cueframe",
   "productName": "CUEFRAME",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "CUEFRAME - 방송 대기화면 편집기",
   "type": "module",
   "main": "electron/main.js",
@@ -25,9 +25,13 @@
     "win": {
       "target": [
         "nsis",
-        "zip"
+        "zip",
+        "portable"
       ],
       "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "CUEFRAME-${version}-portable.exe"
     },
     "nsis": {
       "oneClick": false,
