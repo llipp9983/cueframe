@@ -1,6 +1,7 @@
 // 벚꽃 카페: 만개한 벚나무가 보이는 큰 창과 아늑한 카페 안쪽.
 export default {
   id: 'sakura-cafe',
+  vignette: 0.18,
   name: '벚꽃 카페',
   description: '창밖에 벚꽃이 흩날리는 아늑한 카페 대기화면',
   soonTitle: '잠시 후 방송이 시작됩니다',

@@ -6,11 +6,24 @@ import TextPanel from './TextPanel.jsx'
 import WidgetPanel from './WidgetPanel.jsx'
 import AlertPanel from './AlertPanel.jsx'
 import ParticlesPanel from './ParticlesPanel.jsx'
+import ReadyPanel from './ReadyPanel.jsx'
 import { ColorRow } from './fields.jsx'
 import Collapse from './Collapse.jsx'
 import { relink, snapOn, placeSelectedOnTable, startRename } from './actions.js'
 import { KIND_LABEL } from '../../core/layer.js'
 import { defaultFx, normalizeFx } from '../../core/fx.js'
+
+// 한 번에 고르는 움직임. 눌러서 켜고, 다시 누르면 끈다. 세밀한 값은 아래 [세밀하게 조절]에서 바꾼다.
+const MOTION_KEYS = ['float', 'sway', 'pulse', 'spin', 'twinkle', 'scroll']
+const MOTIONS = [
+  ['둥실둥실', { float: 14, floatSpeed: 4 }, '위아래로 천천히 떠다닙니다'],
+  ['반짝반짝', { twinkle: 0.6, floatSpeed: 3 }, '별빛·불빛처럼 깜빡입니다'],
+  ['숨쉬기', { pulse: 0.25, floatSpeed: 4 }, '살짝 커졌다 작아졌다 합니다'],
+  ['살랑살랑', { sway: 4, floatSpeed: 3.5 }, '좌우로 살짝 흔들립니다'],
+  ['천천히 돌기', { spin: 20 }, '제자리에서 돕니다'],
+  ['옆으로 흐르기', { scroll: 24 }, '구름·파도처럼 흐릅니다(좌우가 이어지는 그림일 때)'],
+]
+const sameMotion = (fx, m) => Object.entries(m).every(([k, v]) => k === 'floatSpeed' || fx[k] === v)
 
 function EffectsSection({ layer }) {
   const patchLayer = useStore((s) => s.patchLayer)
@@ -18,21 +31,43 @@ function EffectsSection({ layer }) {
   const set = (k) => (v) => patchLayer(layer.id, { fx: normalizeFx({ ...fx, [k]: v }) }, `fx-${k}`)
   const bg = layer.kind === 'Background'
   const any = layer.fx != null
+  const motionOn = MOTION_KEYS.some((k) => fx[k] > 0)
+  const pick = (m) => {
+    const base = Object.fromEntries(MOTION_KEYS.map((k) => [k, 0]))
+    patchLayer(layer.id, { fx: normalizeFx({ ...fx, ...base, ...(sameMotion(fx, m) ? {} : m) }) }, 'fx-motion')
+  }
   return (
     <Collapse id="fx" title="효과" defaultOpen={false}>
-      {!bg && <SliderRow label="그림자" value={fx.shadow} min={0} max={1} step={0.01} onChange={set('shadow')} fmt={(v) => `${Math.round(v * 100)}%`} />}
-      {!bg && <SliderRow label="빛나기" value={fx.glow} min={0} max={1} step={0.01} onChange={set('glow')} fmt={(v) => `${Math.round(v * 100)}%`} />}
-      {!bg && fx.glow > 0 && <ColorRow label="빛 색" value={fx.glowColor} onChange={set('glowColor')} />}
-      {!bg && <SliderRow label="둥실둥실(높이)" value={fx.float} min={0} max={80} onChange={set('float')} fmt={(v) => `${Math.round(v)}px`} />}
-      {!bg && <SliderRow label="흔들림(각도)" value={fx.sway} min={0} max={20} step={0.5} onChange={set('sway')} fmt={(v) => `${v}°`} />}
-      {!bg && <SliderRow label="숨쉬기(깜빡임)" value={fx.pulse} min={0} max={1} step={0.01} onChange={set('pulse')} fmt={(v) => `${Math.round(v * 100)}%`} />}
-      {!bg && <SliderRow label="천천히 돌기" value={fx.spin} min={0} max={90} onChange={set('spin')} fmt={(v) => `${Math.round(v)}°/초`} />}
-      {!bg && (fx.float > 0 || fx.sway > 0 || fx.pulse > 0) && <SliderRow label="움직임 주기(초)" value={fx.floatSpeed} min={1} max={12} step={0.5} onChange={set('floatSpeed')} fmt={(v) => `${v}s`} />}
-      {!bg && <SliderRow label="반짝반짝" value={fx.twinkle} min={0} max={1} step={0.01} onChange={set('twinkle')} fmt={(v) => `${Math.round(v * 100)}%`} />}
-      {!bg && <SliderRow label="옆으로 흐르기" value={fx.scroll} min={0} max={400} onChange={set('scroll')} fmt={(v) => `${Math.round(v)}px/초`} />}
+      {!bg && (
+        <>
+          <div className="muted" style={{ marginBottom: 4 }}>움직임 (눌러서 켜고 끄기)</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
+            {MOTIONS.map(([label, m, tip]) => {
+              const on = sameMotion(fx, m) && Object.keys(m).some((k) => k !== 'floatSpeed' && fx[k] > 0)
+              return (
+                <button key={label} className={on ? 'accent' : ''} aria-pressed={on} title={tip} style={{ minHeight: 28, padding: '0 9px' }} onClick={() => pick(m)}>{label}</button>
+              )
+            })}
+          </div>
+          <SliderRow label="그림자" value={fx.shadow} min={0} max={1} step={0.01} onChange={set('shadow')} fmt={(v) => `${Math.round(v * 100)}%`} />
+          <SliderRow label="빛나기" value={fx.glow} min={0} max={1} step={0.01} onChange={set('glow')} fmt={(v) => `${Math.round(v * 100)}%`} />
+          {fx.glow > 0 && <ColorRow label="빛 색" value={fx.glowColor} onChange={set('glowColor')} />}
+        </>
+      )}
       <SliderRow label="흐리게" value={fx.blur} min={0} max={40} onChange={set('blur')} fmt={(v) => `${Math.round(v)}px`} />
       <SliderRow label="어둡게" value={fx.dim} min={0} max={0.9} step={0.01} onChange={set('dim')} fmt={(v) => `${Math.round(v * 100)}%`} />
-      <button disabled={!any} style={{ marginTop: 4 }} onClick={() => patchLayer(layer.id, { fx: null })}>효과 모두 끄기</button>
+      {!bg && (
+        <Collapse id="fx-detail" title={motionOn ? '움직임 세밀하게 조절' : '움직임 세밀하게 조절 (직접 값 넣기)'} defaultOpen={false}>
+          <SliderRow label="둥실둥실(높이)" value={fx.float} min={0} max={80} onChange={set('float')} fmt={(v) => `${Math.round(v)}px`} />
+          <SliderRow label="흔들림(각도)" value={fx.sway} min={0} max={20} step={0.5} onChange={set('sway')} fmt={(v) => `${v}°`} />
+          <SliderRow label="숨쉬기(깜빡임)" value={fx.pulse} min={0} max={1} step={0.01} onChange={set('pulse')} fmt={(v) => `${Math.round(v * 100)}%`} />
+          <SliderRow label="천천히 돌기" value={fx.spin} min={0} max={90} onChange={set('spin')} fmt={(v) => `${Math.round(v)}°/초`} />
+          {(fx.float > 0 || fx.sway > 0 || fx.pulse > 0 || fx.twinkle > 0) && <SliderRow label="움직임 주기(초)" value={fx.floatSpeed} min={1} max={12} step={0.5} onChange={set('floatSpeed')} fmt={(v) => `${v}s`} />}
+          <SliderRow label="반짝반짝" value={fx.twinkle} min={0} max={1} step={0.01} onChange={set('twinkle')} fmt={(v) => `${Math.round(v * 100)}%`} />
+          <SliderRow label="옆으로 흐르기" value={fx.scroll} min={0} max={400} onChange={set('scroll')} fmt={(v) => `${Math.round(v)}px/초`} />
+        </Collapse>
+      )}
+      <button disabled={!any} style={{ marginTop: 6 }} onClick={() => patchLayer(layer.id, { fx: null })}>효과 모두 끄기</button>
     </Collapse>
   )
 }
@@ -54,7 +89,7 @@ export default function PropsPanel() {
   const cid = (id) => (isChat ? `${id}-chat` : isAlert ? `${id}-alert` : id) // 펼친 상태는 따로 기억
 
   const body = !l ? (
-    <div className="muted">선택한 요소가 없습니다.</div>
+    <ReadyPanel />
   ) : (
     <>
       <div className="section-title">선택한 요소</div>

@@ -1,6 +1,8 @@
 // 별빛 밤하늘 — 남색→보라 하늘, 큰 달, 별 띠, 오로라, 산 능선과 호수 (그림: scripts/tpl/starry-night.mjs)
 export default {
   id: 'starry-night',
+  soonBox: { x: 60, y: 400, w: 1800, h: 240 },
+  soonScale: 1.2,
   name: '별빛 밤하늘',
   description: '큰 달과 은하수, 은은한 오로라, 호수에 비친 달빛',
   soonTitle: '잠시 후 방송이 시작돼요',

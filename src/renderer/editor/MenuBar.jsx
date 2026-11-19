@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store.js'
 import { api } from '../api.js'
-import { newProject, openProject, saveProject, showObsGuide, showAbout, duplicateSelected, selectAll, flipSelected, deleteSelected } from './actions.js'
+import { newProject, openProject, saveProject, showObsGuide, showShortcuts, showAbout, duplicateSelected, selectAll, flipSelected, deleteSelected } from './actions.js'
 import { inform, askYesNo, showTemplates, showStartGuide } from '../dialogs/dialogStore.js'
 import { fileNameOf } from '../../core/layer.js'
 
@@ -89,6 +89,7 @@ export default function MenuBar() {
       <Menu id="help" open={open} setOpen={setOpen} label="도움말" mnemonic="H" items={[
         { label: '시작하기 안내', run: showStartGuide },
         { label: 'OBS 설정 안내', run: showObsGuide },
+        { label: '단축키 보기', run: showShortcuts },
         { label: '업데이트 확인', run: async () => { const u = await api.update.check(); if (!u || u.state === 'none') inform('지금 쓰는 버전이 최신이거나, 업데이트를 확인하지 못했습니다.') } },
         { label: '로그 내보내기...', run: () => api.exportLog() },
         { label: '로그 폴더 열기', run: () => api.openLogFolder() },

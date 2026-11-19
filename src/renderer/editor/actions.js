@@ -15,7 +15,7 @@ import { mediaUrl, resolveMedia, loadImageInfo, loadVideoInfo, estimateGifMemory
 import { buildTemplateProject, exportDefinition, templateParts, chatStyleOf } from '../../core/templates.js'
 import { projectToTemplateDef, isTemplateFileName } from '../../core/templatePack.js'
 import { ask, askSave, inform, promptName, showText } from '../dialogs/dialogStore.js'
-import { OBS_GUIDE, ABOUT_TEXT } from '../dialogs/texts.js'
+import { OBS_GUIDE, SHORTCUTS_TEXT, ABOUT_TEXT } from '../dialogs/texts.js'
 
 const st = () => useStore.getState()
 const MB = 1024 * 1024
@@ -331,6 +331,7 @@ export async function offerRecovery() {
 
 // ── 도움말
 export const showObsGuide = () => showText({ title: 'OBS 설정 안내', text: OBS_GUIDE })
+export const showShortcuts = () => showText({ title: '단축키', text: SHORTCUTS_TEXT })
 export async function showAbout() {
   showText({ title: '정보', text: ABOUT_TEXT(await api.appInfo()) })
 }

@@ -29,7 +29,23 @@ import neonCity from './templates/neon-city.js'
 import sakuraCafe from './templates/sakura-cafe.js'
 import sunsetBeach from './templates/sunset-beach.js'
 
-export const TEMPLATES = [skyOnline, gamingRoom, winterPixel, lofiWindow, starryNight, neonCity, sakuraCafe, sunsetBeach]
+/**
+ * 모든 템플릿에 공통으로 비네트(가장자리를 은은하게 어둡게)를 깐다. 글자·채팅창 바로 아래, 그림 위에 놓인다.
+ * t.vignette: 진하기(0~1). 0 이면 쓰지 않는다. 밝은 템플릿은 약하게.
+ */
+export function withVignette(t) {
+  const v = t.vignette ?? 0.3
+  if (!(v > 0)) return t
+  const layer = { kind: 'Prop', name: '비네트', file: 'vignette.png', x: 0, y: 0, w: CANVAS_W, h: CANVAS_H, opacity: v }
+  const put = (list) => {
+    if (list.some((s) => s.file === 'vignette.png')) return list
+    const at = list.findIndex((s) => s.kind === 'Text' || s.kind === 'Particles' || s.kind === 'Chat')
+    return at < 0 ? [...list, layer] : [...list.slice(0, at), layer, ...list.slice(at)]
+  }
+  return { ...t, wait: put(t.wait), ...(Array.isArray(t.soon) ? { soon: put(t.soon) } : {}) }
+}
+
+export const TEMPLATES = [skyOnline, gamingRoom, winterPixel, lofiWindow, starryNight, neonCity, sakuraCafe, sunsetBeach].map(withVignette)
 
 const presetStyle = (name) => (BUILTIN_PRESETS.find((p) => p.name === name) ?? BUILTIN_PRESETS[0]).style
 
@@ -40,12 +56,22 @@ export function chatStyleOf(t, dir = null) {
   return { ...base, bgImage: withDir(dir, t.id, base.bgImage), images: base.images.map((i) => ({ ...i, src: withDir(dir, t.id, i.src) })) }
 }
 
+/**
+ * "곧 시작" 장면의 제목. 카운트다운·채팅창이 빠져 화면이 비므로, 템플릿이 soonBox(자리)와 soonScale(글자 키우기)를 정해 두면
+ * 제목을 가운데로 옮기고 크게 보여 준다.
+ */
+function soonTitleSpec(t, s) {
+  const style = { ...s.style, content: t.soonTitle ?? '잠시 후 방송이 시작됩니다' }
+  if (t.soonScale > 0) style.fontSize = Math.round((style.fontSize ?? 72) * t.soonScale)
+  return { ...s, style, ...(t.soonBox ? { box: { ...t.soonBox } } : {}) }
+}
+
 /** 'same' 이면 wait 에서 곧 시작 장면용 목록을 만든다 */
 export function soonSpecs(t) {
   if (Array.isArray(t.soon)) return t.soon
   return t.wait
     .filter((s) => s.kind !== 'Chat' && s.role !== 'countdown')
-    .map((s) => (s.role === 'title' ? { ...s, style: { ...s.style, content: t.soonTitle ?? '잠시 후 방송이 시작됩니다' } } : s))
+    .map((s) => (s.role === 'title' ? soonTitleSpec(t, s) : s))
 }
 
 function layerFromSpec(t, dir, s) {

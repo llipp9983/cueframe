@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import sharp from 'sharp'
+import vignette from './tpl/_vignette.mjs'
 
 const W = 1920
 const H = 1080
@@ -14,5 +15,6 @@ for (const id of ids) {
   fs.mkdirSync(out, { recursive: true })
   const mod = await import(pathToFileURL(path.resolve('scripts/tpl', id + '.mjs')).href)
   await mod.default({ out, sharp, W, H })
+  await vignette(out, sharp, W, H)
   console.log(id.padEnd(16), fs.readdirSync(out).join(', '))
 }

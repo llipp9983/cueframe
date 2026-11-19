@@ -9,12 +9,29 @@ export const OBS_GUIDE = `OBS에서 대기화면 보내기
 
 출력 해상도(1920x1080 / 1280x720)는 [⚙ 출력 설정]에서 바꿀 수 있고, OBS 캔버스와 같게 맞추면 가장 선명합니다.`
 
+export const SHORTCUTS_TEXT = `파일
+  Ctrl+N 새 프로젝트 · Ctrl+O 열기 · Ctrl+S 저장 · Ctrl+Shift+S 다른 이름으로 저장
+
+편집
+  Ctrl+Z 되돌리기 · Ctrl+Y 다시 실행
+  Ctrl+D 복제 · Ctrl+A 모두 선택 · Delete 삭제
+  Ctrl+H 좌우 반전 (소품·테이블) · F2 이름 바꾸기
+  방향키 1칸 이동 · Shift+방향키 10칸 이동
+  숫자 1~9, 0 선택한 요소의 투명도 (10%~90%, 100%)
+  Ctrl+클릭 여러 요소 선택
+
+장면과 방송
+  Ctrl+1~9 편집할 장면 바꾸기
+  Alt+1~9 해당 번째 장면을 방송에 내보내기
+  Ctrl+Alt+1~9 같은 동작, 다른 프로그램을 쓰는 중에도 ([도구 ▾] > [장면 단축키]를 켠 경우)
+  Ctrl+L 방송 중 잠금 (켜면 장면 바꾸기만 가능)`
+
 /** images: public/guide/ 안의 그림 파일. 치지직 개발자센터 화면은 치지직이 바꿀 수 있어 그림 대신 글로 안내한다. */
 export const CHZZK_GUIDE_STEPS = [
   { title: '치지직 개발자센터 접속', body: '브라우저에서 치지직 개발자센터(developers.chzzk.naver.com)에 접속하고 네이버 계정으로 로그인합니다.\n\n채팅 연결 창의 [치지직 개발자센터 열기] 버튼으로도 열 수 있습니다.' },
   { title: '애플리케이션 등록', body: '[애플리케이션 등록] 버튼을 눌러 새 앱을 만듭니다. 앱 이름은 자유롭게 정하세요.' },
   { title: '로그인 리디렉션 URL 입력', body: '로그인 리디렉션 URL 칸에 아래 주소를 정확히 입력합니다. 채팅 연결 창의 [복사] 버튼으로 복사해서 붙여 넣으면 틀리지 않습니다.\n\nhttp://localhost:51789/callback', images: ['connect-key.png'] },
-  { title: 'API 권한(Scope) 선택', body: '채팅 메시지 조회 권한을 선택합니다. 이 권한이 없으면 "채팅 조회 권한이 없습니다"라고 표시됩니다.' },
+  { title: 'API 권한(Scope) 선택', body: '"채팅 메시지 조회"와 "후원 조회" 권한을 선택합니다. 채팅 권한이 없으면 "채팅 조회 권한이 없습니다"라고 표시되고, 후원 조회가 없으면 후원 알림이 오지 않습니다.' },
   { title: 'Client ID · Client Secret 확인', body: '등록이 끝나면 Client ID와 Client Secret이 나옵니다. Client Secret은 다른 사람에게 보여 주지 마세요.' },
   { title: 'CUEFRAME에 키 입력', body: '화면 아래의 채팅 상태 버튼(예: "채팅 설정 필요")을 누르면 채팅 연결 창이 열립니다. 두 값을 붙여 넣고 [저장하고 다음으로]를 누르세요. 키는 이 PC에 암호화되어 보관됩니다.', images: ['connect-key.png'] },
   { title: '로그인하고 연결', body: '[치지직 로그인]을 누르면 브라우저가 열립니다. 로그인하고 허용을 누르면 자동으로 돌아와 연결됩니다. 연결되면 상태가 "연결됨"으로 바뀝니다.', images: ['connect-login.png', 'connect-wait.png', 'connect-done.png'] },

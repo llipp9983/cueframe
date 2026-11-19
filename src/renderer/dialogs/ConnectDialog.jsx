@@ -122,7 +122,7 @@ function ChzzkPanel() {
               에서 로그인합니다.
             </li>
             <li>[애플리케이션 등록]에서 새 앱을 만들고, <b>로그인 리디렉션 URL</b>에 아래 주소를 입력합니다.<CopyBox text={REDIRECT} /></li>
-            <li>권한(Scope)에서 <b>채팅 메시지 조회</b>를 선택합니다.</li>
+            <li>권한(Scope)에서 <b>채팅 메시지 조회</b>와 <b>후원 조회</b>를 선택합니다. (후원 조회가 없으면 후원 알림이 오지 않습니다)</li>
             <li>발급된 Client ID와 Secret을 아래에 붙여 넣습니다.</li>
           </>
         }

@@ -90,19 +90,14 @@ try {
   await ed.ready
   await ed.call('Log.enable')
   await ed.call('Runtime.enable')
-  // 프로그램을 켜면 채팅 연결 창이 먼저 뜬다: [로그인하지 않음] → [확인]
-  await ed.ev(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent.includes('로그인하지 않음'))?.click()`)
-  await sleep(400)
-  await ed.ev(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent.trim()==='확인')?.click()`)
-  await sleep(400)
-  await ed.ev("document.querySelector('[role=dialog] button')?.click()") // 시작 안내 같은 창이 더 있으면 닫는다
-  await ed.ev(`[...document.querySelectorAll('button,[role=menuitem]')].find(b=>b.textContent.trim().startsWith('파일'))?.click()`)
-  await sleep(250)
-  await ed.ev(`[...document.querySelectorAll('button,[role=menuitem]')].find(b=>b.textContent.includes('템플릿으로 새 프로젝트'))?.click()`)
-  await sleep(700)
-  const ok = await ed.ev(`(()=>{const b=[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent.includes(${JSON.stringify(def.name)}));if(!b)return false;b.click();return true})()`)
+  // 처음 켜면(열어 둔 프로젝트가 없으면) 시작 화면이 뜬다: [템플릿으로 시작] → 카드 → [이 템플릿으로 시작]
+  await ed.ev(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent.includes('템플릿으로 시작'))?.click()`)
+  await sleep(1200)
+  const ok = await ed.ev(`(()=>{const b=[...document.querySelectorAll('[role=dialog] button')].find(b=>(b.title||'').includes('크게 미리 보고') && b.textContent.includes(${JSON.stringify(def.name)}));if(!b)return false;b.click();return true})()`)
   if (!ok) throw new Error(`템플릿 대화상자에서 '${def.name}' 를 찾지 못했습니다(src/core/templates.js 목록에 있는지, name 이 같은지 확인)`)
-  await sleep(1500)
+  await sleep(1000)
+  await ed.ev(`[...document.querySelectorAll('[role=dialog] button')].find(b=>b.textContent.includes('이 템플릿으로 시작'))?.click()`)
+  await sleep(1800)
   step('템플릿 적용')
   const now = Date.now()
   await ed.ev(`(()=>{const s=window.__store.getState();s.set({sampleChat:false});const m=[['치지직','chzzk','오늘 방송 기대돼요!',false],['방송인','youtube','다들 와줘서 고마워요 :)',true],['별빛','soop','화면 너무 예쁘다',false],['코코','chzzk','카운트다운 두근두근',false],['라떼','youtube','안녕하세요~',false]];m.forEach((x,i)=>s.addChat({id:'t'+i,nick:x[0],platform:x[1],text:x[2],streamer:x[3],time:${now}}))})()`)

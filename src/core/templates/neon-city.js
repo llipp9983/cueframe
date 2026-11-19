@@ -9,6 +9,8 @@ export default {
   name: '네온 시티',
   description: '비 갠 사이버펑크 밤 도시, 흐르는 건물과 네온 간판',
   soonTitle: 'STARTING NOW',
+  soonBox: { x: 60, y: 330, w: 1800, h: 260 },
+  soonScale: 1.5,
   transition: 'wipe',
   font: 'Orbitron',
   chatPreset: '네온 사이버',

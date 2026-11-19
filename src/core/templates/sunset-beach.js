@@ -1,12 +1,26 @@
 // 노을 해변: 지는 해와 겹겹의 파도, 야자수 실루엣이 있는 해변 대기화면.
+import { BUILTIN_PRESETS } from '../presets.js'
+
+// 채팅창: 노을색 반투명 유리 느낌(어두운 갈색 상자였던 것을 하늘과 어울리게)
+const goldBase = BUILTIN_PRESETS.find((p) => p.name === '다크 골드').style
+const chatStyle = {
+  ...goldBase,
+  title: 'SUNSET', footer: '오늘도 수고했어요',
+  bgColor: '#3A1550', bgColor2: '#8A2F6B', bgOpacity: 0.62, borderColor: '#FFC27A', borderWidth: 3, radius: 26,
+  textColor: '#FFF6E2', nickColor: '#FFD28A', bubbleColor: '#4A1A5C', bubbleColor2: '#7A2A6A', bubbleBorderColor: '#FFB27A',
+  titleBg: '#FF7A6B', titleColor: '#FFF6E2', footerBg: '#6B2468', footerColor: '#FFD9A8', streamerNickColor: '#FFE08A',
+}
 export default {
   id: 'sunset-beach',
+  soonBox: { x: 60, y: 105, w: 1800, h: 200 },
+  soonScale: 1.35,
   name: '노을 해변',
   description: '보랏빛 노을과 일렁이는 파도, 야자수가 있는 해변 대기화면',
   soonTitle: '노을이 지면 시작해요',
   transition: 'blur',
   font: 'Jua',
   chatPreset: '다크 골드',
+  chatStyle,
   chat: { x: 1450, y: 130, width: 430, height: 800 },
   wait: [
     { kind: 'Background', file: 'bg.jpg' },

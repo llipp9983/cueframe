@@ -2,6 +2,9 @@
 const scroll = (name, file, y, h, speed, opacity = 1) => ({ kind: 'Prop', name, file, x: 0, y, w: 3840, h, fx: { scroll: speed }, opacity })
 export default {
   id: 'winter-pixel',
+  vignette: 0.15,
+  soonBox: { x: 210, y: 400, w: 1500, h: 150 },
+  soonScale: 1.5,
   name: '도트 겨울',
   description: '연보라 도트 하늘과 눈 내리는 숲, 분홍 LOADING 글씨',
   soonTitle: '· · START · ·',
@@ -18,7 +21,7 @@ export default {
     { kind: 'Prop', name: '연기 2', file: 'smoke2.png', x: 536, y: 565, w: 96, h: 160, opacity: 0.8, fx: { float: 34, sway: 4, pulse: 0.4, floatSpeed: 7 } },
     { kind: 'Particles', type: 'snow', opts: { count: 70, size: 8, speed: 9, sway: 30, color: '#FFFFFF' } },
     { kind: 'Text', name: 'LOADING', role: 'title', mode: 'text', box: { x: 460, y: 440, w: 1000, h: 100 }, style: { content: '· · LOADING · ·', fontSize: 56, bold: false, color: '#FF7FA8', letterSpacing: 0, shadow: true, shadowColor: '#E85F8C', outline: 0, fontFamily: 'Press Start 2P' }, fx: { pulse: 0.3, floatSpeed: 1.6 } },
-    { kind: 'Text', name: '카운트다운', role: 'countdown', mode: 'countdown', box: { x: 560, y: 550, w: 800, h: 130 }, style: { fontSize: 36, subScale: 0.5, color: '#8A6FD0', fontFamily: 'Press Start 2P', bold: false, prefix: '', shadowColor: '#FFFFFF', letterSpacing: 2 } },
+    { kind: 'Text', name: '카운트다운', role: 'countdown', mode: 'countdown', box: { x: 460, y: 560, w: 1000, h: 150 }, style: { fontSize: 52, subScale: 0.45, color: '#8A6FD0', fontFamily: 'Press Start 2P', bold: false, prefix: '', shadowColor: '#FFFFFF', letterSpacing: 2 } },
     { kind: 'Chat' },
   ],
   soon: 'same',
