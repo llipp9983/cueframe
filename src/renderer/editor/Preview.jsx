@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useStore } from '../store.js'
 import { Stage, Fit } from '../scene/SceneView.jsx'
+import TransitionStage from '../scene/TransitionStage.jsx'
 import { corners, handlePoints, hitHandle, hitLayer, resizeLayer, rotationFromPointer, HANDLE_SIZE, center } from '../../core/geometry.js'
 import { referenceTable, surfaceY, snapProps } from '../../core/scene.js'
 import { clamp } from '../../core/layer.js'
@@ -213,6 +214,8 @@ export default function Preview() {
   const projectDir = useStore((s) => s.projectDir)
   const chat = useStore((s) => s.chatBuffer)
   const missing = useStore((s) => s.missing)
+  const sceneKey = useStore((s) => s.activeSceneId)
+  const output = useStore((s) => s.output)
   return (
     <Fit
       style={{ flex: 1, minWidth: 0, minHeight: 0, background: 'var(--bg0)', borderRadius: 6, overflow: 'hidden', outline: over ? '2px dashed var(--accent)' : undefined, outlineOffset: -2 }}
@@ -234,7 +237,17 @@ export default function Preview() {
     >
       {({ scale, w, h }) => (
         <>
-          <Stage layers={layers} projectDir={projectDir} chat={chat} scale={scale} missing={missing} onMedia={onMedia} />
+          {/* 장면을 바꾸면 방송 출력 창과 똑같은 전환 효과가 여기서도 보인다(이전 장면은 지나가는 동안만 남는다) */}
+          <TransitionStage
+            sceneKey={sceneKey}
+            layers={layers}
+            transition={output.transition ?? 'fade'}
+            transitionImages={output.transitionImages ?? []}
+            projectDir={projectDir}
+            renderPrev={(prevLayers, dir) => <Stage layers={prevLayers} projectDir={dir} chat={chat} scale={scale} />}
+          >
+            <Stage layers={layers} projectDir={projectDir} chat={chat} scale={scale} missing={missing} onMedia={onMedia} />
+          </TransitionStage>
           <Overlay scale={scale} w={w} h={h} />
           <Interactive scale={scale} w={w} h={h} />
           {layers.length === 0 && <EmptyHint />}
