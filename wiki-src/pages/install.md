@@ -72,7 +72,7 @@
 판매자가 올린 파일이 중간에 바뀌지 않았는지 **SHA-256 해시**로 확인할 수 있습니다. 받은 파일이 있는 폴더에서 PowerShell을 열고 입력합니다. (파일 이름은 받은 파일에 맞게 바꾸세요.)
 
 ```
-Get-FileHash .\CUEFRAME-1.9.3-win-x64.exe -Algorithm SHA256
+Get-FileHash .\CUEFRAME-1.9.4-win-x64.exe -Algorithm SHA256
 ```
 
 ![PowerShell에서 해시 확인 (예시 화면)](img/hash-check.png)
@@ -81,6 +81,9 @@ Get-FileHash .\CUEFRAME-1.9.3-win-x64.exe -Algorithm SHA256
 
 | 버전 | 파일 | SHA-256 |
 |---|---|---|
+| 1.9.4 | `CUEFRAME-1.9.4-win-x64.exe` | `0f6a3dac25272a3079cb8787e58a78a96a044e0a6e1d2433f98bc165b184de53` |
+| 1.9.4 | `CUEFRAME-1.9.4-win-x64.zip` | `eca9173364760027e9eced50471443217c01eddde768e5663d17cc2c34c5d713` |
+| 1.9.4 | `CUEFRAME-1.9.4-portable.exe` | `5f762537513f9ba1a940db44a137aa1cd14636975ce5812dc281d5523369ab66` |
 | 1.9.3 | `CUEFRAME-1.9.3-win-x64.exe` | `e703f7e6a21b649657374db35ccabd9c68a931e295000f08c00988c2d91fdcdc` |
 | 1.9.3 | `CUEFRAME-1.9.3-win-x64.zip` | `d251d81756eee207e01be46d3185d46a14a69cec95f3d1ebc3898cea353a0058` |
 | 1.9.3 | `CUEFRAME-1.9.3-portable.exe` | `9d6a36918914a5d8c45d2a382e657d33d8501e6adf0f70b67a49a8e1713db09b` |

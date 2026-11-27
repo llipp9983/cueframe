@@ -29,6 +29,10 @@ const HIDDEN = !!TEST_DATA && process.env.CUEFRAME_HIDDEN === '1' // 시험용: 
 
 app.setName('CUEFRAME')
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required') // 위젯 소리가 바로 재생되게
+// 출력 창을 화면 밖으로 내려 두거나 다른 창에 가려져도 그리기를 멈추지 않게 한다(멈추면 OBS 창 캡처가 까맣게 나오거나 멈춘다)
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion')
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
+app.commandLine.appendSwitch('disable-renderer-backgrounding')
 
 // 위젯(webview)은 https 페이지만, 새 창·다른 프로토콜 이동·개발자 도구·우클릭 메뉴 모두 막고 배경은 투명하게
 app.on('web-contents-created', (_e, contents) => {
@@ -175,15 +179,21 @@ function restoredOutputBounds() {
   return inside ? { width, height, x: b.x, y: b.y } : { width, height }
 }
 
+let hiddenAt = 0
+/** 숨겨 둔(화면 밖에 내려 둔) 출력 창을 원래 자리로 올린다 */
+function unhideOutput() {
+  if (!output || output.isDestroyed() || !hiddenBounds) return false
+  output.setBounds(hiddenBounds)
+  hiddenBounds = null
+  broadcast('output:hidden', false)
+  return true
+}
+
 function openOutput(conf) {
   const resChanged = conf.width !== outputConf.width || conf.height !== outputConf.height
   outputConf = { ...outputConf, ...conf }
   if (output && !output.isDestroyed()) {
-    if (hiddenBounds) {
-      output.setBounds(hiddenBounds)
-      hiddenBounds = null
-      broadcast('output:hidden', false)
-    }
+    unhideOutput()
     if (output.isMinimized()) output.restore()
     output.show()
     output.focus()
@@ -227,10 +237,30 @@ function openOutput(conf) {
   output.on('page-title-updated', (e) => e.preventDefault())
   // 최소화 대신 가장 오른쪽 모니터 끝 + 100 위치로 숨김(최소화하면 OBS 캡처가 멈춘다)
   output.on('minimize', () => {
-    hiddenBounds = output.getBounds()
+    // 최소화된 창의 getBounds()는 엉뚱한 값(화면 밖 좌표)일 수 있어, 원래 자리는 getNormalBounds()로 기억한다
+    hiddenBounds = output.getNormalBounds()
+    hiddenAt = Date.now()
     output.restore()
     const right = Math.max(...screen.getAllDisplays().map((d) => d.bounds.x + d.bounds.width))
-    output.setPosition(right + 100, hiddenBounds.y)
+    const away = () => {
+      if (!output || output.isDestroyed() || !hiddenBounds) return
+      if (output.isMinimized()) output.restore()
+      output.setPosition(right + 100, hiddenBounds.y)
+    }
+    // 최소화했다 복원한 창은 화면을 거의 다시 그리지 않는 상태(초당 2~3번)로 남아 OBS에 멈춘 화면이 간다.
+    // 크기를 1px 키웠다 되돌리면 다시 정상으로 그린다.
+    const nudge = () => {
+      if (!output || output.isDestroyed() || !hiddenBounds) return
+      const b = output.getBounds()
+      output.setBounds({ ...b, width: b.width + 1 })
+      output.setBounds(b)
+    }
+    away()
+    nudge()
+    setTimeout(() => {
+      away() // 복원이 늦게 끝나는 경우에도 화면 밖에 두고 최소화 상태로 남지 않게 한다
+      nudge()
+    }, 120)
     broadcast('output:hidden', true)
   })
   output.webContents.on('context-menu', () => {
@@ -240,6 +270,13 @@ function openOutput(conf) {
   })
   output.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   output.on('close', rememberOutputBounds)
+  // 작업 표시줄에서 [방송 출력 창]을 눌러 앞으로 가져오면 화면 안으로 올라온다(숨기는 순간의 포커스 변화는 무시)
+  const bringBack = () => {
+    if (hiddenBounds && Date.now() - hiddenAt > 800) unhideOutput()
+  }
+  output.on('focus', bringBack)
+  output.on('show', bringBack)
+  output.on('restore', bringBack)
   output.on('closed', () => {
     output = null
     hiddenBounds = null
