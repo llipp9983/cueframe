@@ -55,6 +55,7 @@ export default function BottomBars() {
   const saving = useStore((s) => s.saving)
   const notice = useStore((s) => s.notice)
   const outputOpen = useStore((s) => s.outputOpen)
+  const outputHidden = useStore((s) => s.outputHidden)
   const missingCount = useStore((s) => Object.keys(s.missing).length)
   const canUndo = useStore((s) => s.past.length > 0)
   const canRedo = useStore((s) => s.future.length > 0)
@@ -206,7 +207,12 @@ export default function BottomBars() {
           <label className="check"><input type="checkbox" checked={diag} onChange={(e) => set({ diag: e.target.checked })} />진단 표시 (출력 창에 fps)</label>
         </div>
       </Pop>
-      {outputOpen ? (
+      {outputOpen && outputHidden ? (
+        <>
+          <button className="accent" style={{ minWidth: 112 }} onClick={() => api.openOutput({ ...output })} title="화면 밖에 숨겨 둔 출력 창을 다시 꺼냅니다(OBS 캡처는 그대로 이어집니다)">출력 창 다시 띄우기</button>
+          <button className="ghost" onClick={() => api.closeOutput()} title="출력 창을 완전히 닫습니다">닫기</button>
+        </>
+      ) : outputOpen ? (
         <button style={{ minWidth: 112 }} onClick={() => api.closeOutput()} title="방송 출력 창이 열려 있습니다. 누르면 닫습니다"><Dot color="var(--ok)" />&nbsp;출력 중 · 닫기</button>
       ) : (
         <button className="accent" style={{ minWidth: 112 }} onClick={() => api.openOutput({ ...output })} title="방송에 나갈 출력 창을 엽니다">출력 창 열기</button>

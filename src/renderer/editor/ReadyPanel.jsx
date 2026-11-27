@@ -35,6 +35,7 @@ const QUICK = [
  */
 export default function ReadyPanel() {
   const outputOpen = useStore((s) => s.outputOpen)
+  const outputHidden = useStore((s) => s.outputHidden)
   const output = useStore((s) => s.output)
   const chzzk = useStore((s) => s.chzzk)
   const youtube = useStore((s) => s.youtube)
@@ -57,9 +58,9 @@ export default function ReadyPanel() {
       <Row
         ok={outputOpen}
         title="출력 창"
-        state={outputOpen ? `열려 있음 (${output.width}×${output.height}, ${output.fps}fps)` : 'OBS가 가져갈 창이 아직 안 열렸습니다'}
-        action={outputOpen ? '닫기' : '열기'}
-        onAction={() => (outputOpen ? api.closeOutput() : api.openOutput({ ...output }))}
+        state={outputOpen ? (outputHidden ? '화면 밖에 숨겨져 있습니다 (OBS 캡처는 계속됩니다)' : `열려 있음 (${output.width}×${output.height}, ${output.fps}fps)`) : 'OBS가 가져갈 창이 아직 안 열렸습니다'}
+        action={outputOpen ? (outputHidden ? '다시 띄우기' : '닫기') : '열기'}
+        onAction={() => (outputOpen && !outputHidden ? api.closeOutput() : api.openOutput({ ...output }))}
       />
       <Row
         ok={chatOk}

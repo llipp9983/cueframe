@@ -124,4 +124,5 @@ contextBridge.exposeInMainWorld('api', {
   onAlertClearQueue: on('alert:clearQueue'),
   onOutputClosed: on('output:closed'),
   onOutputOpened: on('output:opened'),
+  onOutputHidden: on('output:hidden'),
 })

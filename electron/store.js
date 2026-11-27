@@ -68,6 +68,7 @@ export function getSettings() {
     lastMediaDir: typeof r.lastMediaDir === 'string' ? r.lastMediaDir : null, // 소품·배경을 마지막으로 고른 폴더
     donationDebug: r.donationDebug === true, // 받은 후원 원본을 로그 파일에 남김(문제 확인용)
     sceneHotkeys: r.sceneHotkeys === true, // Ctrl+Alt+1~9 로 다른 프로그램을 쓰는 중에도 방송 장면 바꾸기
+    outputBounds: cleanOutputBounds(r.outputBounds), // 출력 창을 마지막으로 닫았을 때의 자리와 크기(메인 프로세스만 정함)
     saveDonations: r.saveDonations !== false, // 후원 기록을 파일에 저장해 다음 실행 때도 보여 줌
   }
 }
@@ -78,6 +79,17 @@ export function cleanSettingsPatch(patch) {
   const out = {}
   for (const k of EDITABLE) if (k in p) out[k] = k === 'lastMediaDir' ? (typeof p[k] === 'string' || p[k] === null ? p[k] : null) : k === 'donationDebug' || k === 'saveDonations' || k === 'sceneHotkeys' ? p[k] === true : p[k]
   return out
+}
+/** 출력 창 자리·크기(창 안쪽 크기 width×height, 화면 위치 x,y). 이상한 값은 버린다. */
+export function cleanOutputBounds(b) {
+  if (!b || typeof b !== 'object') return null
+  const n = (v) => (Number.isFinite(v) ? Math.round(v) : null)
+  const width = n(b.width)
+  const height = n(b.height)
+  if (width === null || height === null || width < 320 || height < 180 || width > 10000 || height > 10000) return null
+  const x = n(b.x)
+  const y = n(b.y)
+  return { width, height, ...(x !== null && y !== null && Math.abs(x) < 100000 && Math.abs(y) < 100000 ? { x, y } : {}) }
 }
 export function setSettings(patch) {
   const next = { ...getSettings(), ...patch }

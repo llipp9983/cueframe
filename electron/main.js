@@ -148,6 +148,33 @@ function keepWidthFitRatio() {
   output.setContentSize(w, Math.round((w * outputConf.height) / outputConf.width))
 }
 
+/** 출력 창을 닫기 직전의 자리와 크기를 기억한다(숨겨 둔 상태면 숨기기 전 자리). 다음에 열 때 그대로 연다. */
+function rememberOutputBounds() {
+  try {
+    if (!output || output.isDestroyed() || output.isMinimized()) return
+    const c = output.getContentBounds()
+    const pos = hiddenBounds ?? output.getBounds()
+    store.setSettings({ outputBounds: { width: c.width, height: c.height, x: pos.x, y: pos.y } })
+  } catch {}
+}
+
+/**
+ * 마지막에 닫았던 출력 창 자리·크기. 지금 출력 해상도의 비율과 다르면 가로는 두고 세로만 맞추고,
+ * 저장된 위치가 지금 연결된 모니터 밖이면 위치는 버린다(창이 화면 밖에서 안 보이는 일을 막는다).
+ */
+function restoredOutputBounds() {
+  const b = store.getSettings().outputBounds
+  if (!b) return null
+  const width = Math.max(320, b.width)
+  const height = Math.round((width * outputConf.height) / outputConf.width)
+  if (b.x === undefined) return { width, height }
+  const inside = screen.getAllDisplays().some((d) => {
+    const w = d.workArea
+    return b.x + 80 < w.x + w.width && b.x + width - 80 > w.x && b.y + 40 < w.y + w.height && b.y + 40 > w.y
+  })
+  return inside ? { width, height, x: b.x, y: b.y } : { width, height }
+}
+
 function openOutput(conf) {
   const resChanged = conf.width !== outputConf.width || conf.height !== outputConf.height
   outputConf = { ...outputConf, ...conf }
@@ -155,6 +182,7 @@ function openOutput(conf) {
     if (hiddenBounds) {
       output.setBounds(hiddenBounds)
       hiddenBounds = null
+      broadcast('output:hidden', false)
     }
     if (output.isMinimized()) output.restore()
     output.show()
@@ -163,11 +191,12 @@ function openOutput(conf) {
     return
   }
   const sf = screen.getPrimaryDisplay().scaleFactor || 1
+  const saved = restoredOutputBounds()
   output = new BrowserWindow({
-    ...(HIDDEN ? { x: -12000, y: -12000 } : {}), // 시험용: 화면 밖에 두어야 그림을 찍을 수 있다
+    ...(HIDDEN ? { x: -12000, y: -12000 } : saved && saved.x !== undefined ? { x: saved.x, y: saved.y } : {}), // 시험용: 화면 밖에 두어야 그림을 찍을 수 있다
     useContentSize: true,
-    width: Math.round(outputConf.width / sf),
-    height: Math.round(outputConf.height / sf),
+    width: saved ? saved.width : Math.round(outputConf.width / sf),
+    height: saved ? saved.height : Math.round(outputConf.height / sf),
     minWidth: 320,
     backgroundColor: '#000000',
     title: '방송 출력 창',
@@ -188,7 +217,7 @@ function openOutput(conf) {
   try {
     output.webContents.setFrameRate(outputConf.fps)
   } catch {}
-  output.webContents.once('did-finish-load', applyOutputSize)
+  if (!saved) output.webContents.once('did-finish-load', applyOutputSize) // 마지막에 닫았던 크기가 있으면 그대로 둔다
   output.loadURL(pageUrl('output'))
   // 창 틀을 뺀 안쪽이 항상 출력 비율이 되도록 크기 조절을 직접 맞춘다(Windows는 setAspectRatio에 틀 크기를 줄 수 없다)
   output.on('will-resize', (e, next, details) => {
@@ -202,6 +231,7 @@ function openOutput(conf) {
     output.restore()
     const right = Math.max(...screen.getAllDisplays().map((d) => d.bounds.x + d.bounds.width))
     output.setPosition(right + 100, hiddenBounds.y)
+    broadcast('output:hidden', true)
   })
   output.webContents.on('context-menu', () => {
     Menu.buildFromTemplate([
@@ -209,9 +239,11 @@ function openOutput(conf) {
     ]).popup({ window: output })
   })
   output.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  output.on('close', rememberOutputBounds)
   output.on('closed', () => {
     output = null
     hiddenBounds = null
+    broadcast('output:hidden', false)
     broadcast('output:closed')
   })
   broadcast('output:opened')
@@ -657,6 +689,7 @@ app.whenReady().then(() => {
     }
     send(editor, ch, data)
   }
+  if (TEST_DATA) globalThis.__cueframeOutputWin = () => output // 시험용
   if (TEST_DATA) globalThis.__cueframeEmitChat = (m) => fromChat('chat:message', m) // 시험용(--inspect로 연결해 부른다)
   chzzk.init(fromChat)
   youtube.init(fromChat)

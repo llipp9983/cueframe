@@ -35,6 +35,7 @@ export const useStore = create((set, get) => ({
   autosavedAt: 0, // 마지막 자동 저장 시각
   update: { state: 'none' },
   outputOpen: false,
+  outputHidden: false, // 출력 창을 [-]로 화면 밖에 숨겨 둔 상태(창은 살아 있다)
   updateHidden: false,
   sampleChat: false,
   guideSnap: true, // 끌 때 가장자리·중앙·다른 요소에 붙이기

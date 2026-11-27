@@ -73,7 +73,8 @@ export default function EditorApp() {
     })()
     const offs = [
       api.onOutputOpened(() => useStore.getState().set({ outputOpen: true })),
-      api.onOutputClosed(() => useStore.getState().set({ outputOpen: false })),
+      api.onOutputClosed(() => useStore.getState().set({ outputOpen: false, outputHidden: false })),
+      api.onOutputHidden((h) => useStore.getState().set({ outputHidden: !!h })),
       api.onUpdateState((u) => useStore.getState().set({ update: u, updateHidden: false })),
       api.onChzzkStatus((c) => useStore.getState().set({ chzzk: c })),
       api.onYoutubeStatus((y) => useStore.getState().set({ youtube: y })),

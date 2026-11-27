@@ -98,6 +98,7 @@ const stub = {
   onOutputState: unsub,
   onOutputClosed: unsub,
   onOutputOpened: unsub,
+  onOutputHidden: unsub,
 }
 
 export const api = typeof window !== 'undefined' && window.api ? window.api : stub
